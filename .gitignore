@@ -1,0 +1,29 @@
+# Backend
+backend/node_modules/
+backend/.env
+backend/.env.local
+backend/dist/
+backend/build/
+backend/*.log
+
+# Frontend
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+frontend/*.log
+
+# IDE
+.vs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# General
+.env.*.local
