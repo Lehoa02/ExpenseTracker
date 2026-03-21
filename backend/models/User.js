@@ -18,16 +18,15 @@ const userSchema = new mongoose.Schema({
     },
     profilePhoto: {
         type: String,
-        default: null
+        default: ""
     }
 }, { timestamps: true });
 
 // Hash the password before saving the user
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
-        this.password = await bcrypt.hash(this.password, 10);
-        next();
-    });
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
+    this.password = await bcrypt.hash(this.password, 10);
+});
 
 // Method to compare entered password with hashed password
 userSchema.methods.comparePassword = async function (enteredPassword) {
