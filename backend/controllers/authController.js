@@ -13,7 +13,7 @@ const generateToken = (id) => {
     //      return res.status(400).json({ message: 'Please fill in all required fields' });
     //  }
 
-    const { fullName, email, password, profilePhoto } = req.body;
+    const { fullName, email, password, profileImageUrl } = req.body;
 
     //Validation: Check missing fields
     if (!fullName || !email || !password) {
@@ -32,7 +32,7 @@ const generateToken = (id) => {
             fullName,
             email,
             password,
-            profilePhoto
+            profilePhoto: profileImageUrl
         });
 
         //Save user to database
