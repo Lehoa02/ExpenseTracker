@@ -1,14 +1,29 @@
 import React from "react";
 import { LuUtensils, LuTrendingUp, LuTrendingDown, LuTrash2 } from "react-icons/lu";
+import { useTheme } from '../../context/ThemeContext';
+import { addThousandSeparator } from '../../utils/helper';
 
 const TransactionInfoCard = ({ title, icon, date, amount, type, hideDeleteBtn, onDelete }) => {
-    const getAmountStyles = () => type === "income" ? "bg-green-50 text-green-500" : "bg-red-50 text-red-500";
+    const { isDark } = useTheme();
+    const rowHoverClass = isDark ? 'hover:bg-slate-700/35' : 'hover:bg-gray-100/60';
+
+    const getAmountStyles = () => {
+        if (type === "income") {
+            return isDark
+                ? "bg-emerald-900/40 text-emerald-300"
+                : "bg-green-50 text-green-600";
+        }
+
+        return isDark
+            ? "bg-rose-900/35 text-rose-300"
+            : "bg-red-50 text-red-500";
+    };
     
     return (
-    <div className="group relative flex items-center gap-4 mt-2 p-3 rounded-lg hover:bg-gray-100/60">
-        <div className="w-12 h-12 flex items-center justify-center text-xl text-gray-800 bg-gray-100 rounded-full ">
+    <div className={`group relative flex items-center gap-4 mt-2 p-3 rounded-lg ${rowHoverClass} transition-colors duration-150`}>
+        <div className="w-12 h-12 flex items-center justify-center text-xl text-slate-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700/70 rounded-full">
             {icon ? (
-                <img src={icon} alt={title} className="w-6 h-6" />
+                <img src={icon} alt={title} className="w-6 h-6 opacity-85" />
             ) : (
                 <LuUtensils/>
             )}
@@ -31,7 +46,7 @@ const TransactionInfoCard = ({ title, icon, date, amount, type, hideDeleteBtn, o
                     <div
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${getAmountStyles()}`}>
                         <h6 className="text-xs font-medium">
-                            {type === "income" ? "+" : "-"} {amount}
+                            {type === "income" ? "+" : "-"} {addThousandSeparator(amount)}
                         </h6>
                         {type === "income" ? <LuTrendingUp/> : <LuTrendingDown/>}
                     </div>

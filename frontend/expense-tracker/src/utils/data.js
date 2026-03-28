@@ -4,6 +4,7 @@ import {
     LuHandCoins,
     LuLogOut,
 } from 'react-icons/lu';
+import { IoSettingsOutline } from "react-icons/io5";
 
 export const SIDE_MENU_DATA = [
     {
@@ -23,6 +24,12 @@ export const SIDE_MENU_DATA = [
         name: "Expense",
         icon: LuHandCoins,
         path: "/expense",
+    },
+    {
+        id: "04",
+        name: "Settings",
+        icon: IoSettingsOutline,
+        path: "/settings",
     },
     {
         id: "06",

@@ -1,3 +1,22 @@
+const { getFinanceSummary } = require("../services/financeSummaryService.js");
+
+exports.getDashboardData = async (req, res) => {
+    try{
+        const summary = await getFinanceSummary(req.user.id);
+
+        res.json({
+            ...summary,
+        });
+    } catch (error) {
+        console.error("Dashboard API Error:", error);
+        res.status(500).json({ message: "Error fetching dashboard data", error: error.message });
+    }
+};
+
+
+//Prev Version:
+
+/*
 const Expense = require("../models/Expense.js");
 const Income = require("../models/Income.js");
 const {isValidObjectId, Types } = require("mongoose");
@@ -78,3 +97,4 @@ exports.getDashboardData = async (req, res) => {
         res.status(500).json({ message: "Error fetching dashboard data", error: error.message });
     }
 };
+*/

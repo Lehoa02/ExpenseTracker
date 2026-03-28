@@ -1,18 +1,41 @@
 import React from "react";
-import { LuDownload } from "react-icons/lu";
+import { LuDownload, LuX } from "react-icons/lu";
 import moment from "moment";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
 
-const ExpenseList = ({ transactions, onDelete, onDownload }) => {
+const ExpenseList = ({ transactions, onDelete, onDownload, filterLabel, onClearFilter }) => {
     return (
         <div className="card">
-            <div className="flex items-center justify-between">
-                <h5 className="text-lg">All Expenses</h5>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <h5 className="text-lg">All Expenses</h5>
+                        {filterLabel && (
+                            <span className="text-sm text-gray-500 dark:text-slate-400">
+                                filtered for <span className="font-semibold text-gray-800 dark:text-slate-100">{filterLabel}</span>
+                            </span>
+                        )}
+                    </div>
+                </div>
 
-                <button className="card-btn" onClick={onDownload}>
-                    <LuDownload className="text-base"/>
-                    Download
-                </button>
+                <div className="flex items-center gap-2">
+                    {filterLabel && onClearFilter && (
+                        <button
+                            type="button"
+                            className="card-btn px-3"
+                            onClick={onClearFilter}
+                            title="Clear filter"
+                            aria-label="Clear filter"
+                        >
+                            <LuX className="text-base" />
+                        </button>
+                    )}
+
+                    <button className="card-btn" onClick={onDownload}>
+                        <LuDownload className="text-base"/>
+                        Download
+                    </button>
+                </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2">
                 {transactions?.map((expense) => (
@@ -20,7 +43,7 @@ const ExpenseList = ({ transactions, onDelete, onDownload }) => {
                         key={expense._id}
                         title={expense.category}
                         icon={expense.icon}
-                        date={moment(expense.date).format("Do MMM, YYYY")}
+                        date={moment.utc(expense.date).format("Do MMM, YYYY")}
                         amount={expense.amount}
                         type="expense"
                         onDelete={() => onDelete(expense._id)}

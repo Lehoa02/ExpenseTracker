@@ -19,12 +19,21 @@ export const getInitials = (name) => {
 };
 
 export const addThousandSeparator = (num) => {
-    if (num === null || isNaN(num)) return "";
+    if (num === null || num === undefined || num === "") return "";
 
-    const [integerPart, fractionalPart] = num.toString().split(".");
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const normalizedValue = typeof num === "string" ? num.replace(/,/g, "").trim() : num;
+    const numericValue = Number(normalizedValue);
 
-    return fractionalPart ? `${formattedInteger}.${fractionalPart}` : formattedInteger;
+    if (Number.isNaN(numericValue)) return "";
+
+    const [integerPart, fractionalPart] = String(normalizedValue).split(".");
+    const isNegative = integerPart.startsWith("-");
+    const absoluteIntegerPart = isNegative ? integerPart.slice(1) : integerPart;
+    const formattedInteger = absoluteIntegerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    return fractionalPart !== undefined && fractionalPart !== ""
+        ? `${isNegative ? "-" : ""}${formattedInteger}.${fractionalPart}`
+        : `${isNegative ? "-" : ""}${formattedInteger}`;
 };
 
 export const prepareExpenseBarChartData = (data = []) => {
@@ -36,26 +45,134 @@ export const prepareExpenseBarChartData = (data = []) => {
     return chartData;
 };
 
-export const prepareIncomeBarChartData = (data = []) => {
-    const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+export const prepareIncomeBarChartData = (data = [], groupBy = "month") => {
+    const buckets = new Map();
+    const validItems = [...data]
+        .filter((item) => item?.date)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const chartData = sortedData.map((item) => ({
-        month: moment(item?.date).format("Do MMM"),
-        amount: item?.amount,
-        source: item?.source,
-    }));
+    const uniqueYears = new Set(validItems.map((item) => moment.utc(item.date).format("YYYY")));
+    const useShortMonthLabels = uniqueYears.size <= 1;
 
-    return chartData;
+    validItems.forEach((item) => {
+        const date = moment.utc(item.date);
+        const bucketKey =
+            groupBy === "day"
+                ? date.format("YYYY-MM-DD")
+                : groupBy === "year"
+                    ? date.format("YYYY")
+                    : date.format("YYYY-MM");
+        const label =
+            groupBy === "day"
+                ? (uniqueYears.size <= 1 ? date.format("Do MMM") : date.format("Do MMM YYYY"))
+                : groupBy === "year"
+                    ? date.format("YYYY")
+                : (useShortMonthLabels ? date.format("MMM") : date.format("MMM YYYY"));
+        const amount = Number(item?.amount) || 0;
+        const category = item?.source || "Income";
+
+        if (!buckets.has(bucketKey)) {
+            buckets.set(bucketKey, {
+                bucketKey,
+                groupBy,
+                month: label,
+                amount: 0,
+                categories: new Set(),
+            });
+        }
+
+        const bucket = buckets.get(bucketKey);
+        bucket.amount += amount;
+        bucket.categories.add(category);
+    });
+
+    return Array.from(buckets.entries())
+        .sort(([bucketKeyA], [bucketKeyB]) => bucketKeyA.localeCompare(bucketKeyB))
+        .map(([, value]) => ({
+            bucketKey: value.bucketKey,
+            groupBy: value.groupBy,
+            month: value.month,
+            amount: value.amount,
+            category: value.categories.size === 1 ? Array.from(value.categories)[0] : "Multiple Incomes",
+        }));
 };
 
-export const prepareExpenseLineChartData = (data = []) => {
-    const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+export const filterTransactionsByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
+    if (!bucketKey) {
+        return data;
+    }
 
-    const chartData = sortedData.map((item) => ({
-        month: moment(item?.date).format("Do MMM"),
-        amount: item?.amount,
-        category: item?.category,
-    }));
+    return data.filter((item) => {
+        if (!item?.date) return false;
 
-    return chartData;
+        const date = moment.utc(item.date);
+        const currentKey =
+            groupBy === "day"
+                ? date.format("YYYY-MM-DD")
+                : groupBy === "year"
+                    ? date.format("YYYY")
+                    : date.format("YYYY-MM");
+
+        return currentKey === bucketKey;
+    });
+};
+
+export const prepareExpenseLineChartData = (data = [], groupBy = "day") => {
+    const buckets = new Map();
+    const validItems = [...data]
+        .filter((item) => item?.date)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const uniqueYears = new Set(validItems.map((item) => moment.utc(item.date).format("YYYY")));
+    const useShortMonthLabels = uniqueYears.size <= 1;
+
+    validItems.forEach((item) => {
+        const date = moment.utc(item.date);
+        const bucketKey =
+            groupBy === "day"
+                ? date.format("YYYY-MM-DD")
+                : groupBy === "year"
+                    ? date.format("YYYY")
+                    : date.format("YYYY-MM");
+        const label =
+            groupBy === "day"
+                ? (uniqueYears.size <= 1 ? date.format("Do MMM") : date.format("Do MMM YYYY"))
+                : groupBy === "year"
+                    ? date.format("YYYY")
+                    : (useShortMonthLabels ? date.format("MMM") : date.format("MMM YYYY"));
+        const amount = Number(item?.amount) || 0;
+        const category = item?.category || "Expense";
+
+        if (!buckets.has(bucketKey)) {
+            buckets.set(bucketKey, {
+                bucketKey,
+                groupBy,
+                month: label,
+                amount: 0,
+                categories: new Set(),
+            });
+        }
+
+        const bucket = buckets.get(bucketKey);
+        bucket.amount += amount;
+        bucket.categories.add(category);
+    });
+
+    return Array.from(buckets.entries())
+        .sort(([bucketKeyA], [bucketKeyB]) => bucketKeyA.localeCompare(bucketKeyB))
+        .map(([, value]) => ({
+            bucketKey: value.bucketKey,
+            groupBy: value.groupBy,
+            month: value.month,
+            amount: value.amount,
+            category: value.categories.size === 1 ? Array.from(value.categories)[0] : "Multiple Expenses",
+        }));
 }
+
+export const filterExpensesByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
+    return filterTransactionsByPeriod(data, groupBy, bucketKey);
+};
+
+export const filterIncomeByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
+    return filterTransactionsByPeriod(data, groupBy, bucketKey);
+};

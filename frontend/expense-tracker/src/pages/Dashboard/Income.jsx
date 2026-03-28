@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import IncomeOverview from '../../components/Income/IncomeOverview';
-import { data } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPath';
 import { useUserAuth } from '../../hooks/useUserAuth';
-import { IoMdDoneAll } from 'react-icons/io';
 import Modal from '../../components/Modal';
 import AddIncomeForm from '../../components/Income/AddIncomeForm';
 import { toast } from 'react-hot-toast';
 import IncomeList from '../../components/Income/IncomeList';
 import DeleteAlert from '../../components/DeleteAlert';
+import { filterIncomeByPeriod } from '../../utils/helper';
 
 
 const Income = () => {
@@ -22,6 +21,15 @@ const Income = () => {
     data: null,
   });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
+  const [incomeFilter, setIncomeFilter] = useState(null);
+
+  const filteredIncomeData = useMemo(() => {
+    if (!incomeFilter) {
+      return incomeData;
+    }
+
+    return filterIncomeByPeriod(incomeData, incomeFilter.groupBy, incomeFilter.bucketKey);
+  }, [incomeData, incomeFilter]);
 
   //Get All Income Details
   const fetchIncomeDetails = async () => {
@@ -92,6 +100,22 @@ const Income = () => {
     }
   };
 
+   const handleChartPointClick = (bucket) => {
+    if (!bucket?.bucketKey || !bucket?.groupBy) {
+      return;
+    }
+
+    setIncomeFilter({
+      bucketKey: bucket.bucketKey,
+      groupBy: bucket.groupBy,
+      label: bucket.month,
+    });
+  };
+
+  const clearIncomeFilter = () => {
+    setIncomeFilter(null);
+  };
+
   //handle download income details
   const handleDownloadIncomeDetails = async () => {
     try {
@@ -127,13 +151,17 @@ const Income = () => {
             <IncomeOverview
             transactions={incomeData}
             onAddIncome={() => setOpenAddIncomeModal(true)}
+            onPointClick={handleChartPointClick}
+            onGroupByChange={clearIncomeFilter}
             />
           </div>
 
           <IncomeList 
-            transactions={incomeData}
+            transactions={filteredIncomeData}
             onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
             onDownload={handleDownloadIncomeDetails}
+            filterLabel={incomeFilter?.label}
+            onClearFilter={clearIncomeFilter}
           />
         </div>
 

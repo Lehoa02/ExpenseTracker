@@ -1,4 +1,5 @@
 import React from 'react'
+import { addThousandSeparator } from '../../utils/helper';
 
 const InfoCard = ({ icon, label, value, color }) =>{
     return <div className='flex gap-6 bg-white p-6 rounded-2xl shadow-md shadow-gray-100 border border-gray-200/50'>
@@ -7,7 +8,7 @@ const InfoCard = ({ icon, label, value, color }) =>{
         </div>
         <div>
         <h6 className='text-sm text-gray-500  mb-1'>{label}</h6>
-        <span className='text-[22px]'>${value}</span>
+        <span className='text-[22px]'>${addThousandSeparator(value)}</span>
     </div>
     </div>
     

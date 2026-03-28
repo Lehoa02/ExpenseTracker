@@ -2,6 +2,7 @@ import React, { useContext } from 'react'
 import { UserContext } from '../../context/UserContext'
 import Navbar from './Navbar'
 import SideMenu from './SideMenu'
+import FinanceAssistant from '../AI/FinanceAssistant'
 
 
 const DashboardLayout = ({children, activeMenu}) => {
@@ -18,6 +19,7 @@ const DashboardLayout = ({children, activeMenu}) => {
                 <div className='grow mx-5'>{children}</div>
             </div>
         )}
+        {user && <FinanceAssistant />}
     </div>
    
   );

@@ -7,16 +7,17 @@ import { API_PATHS } from '../../utils/apiPath';
 import InfoCard from '../../components/Cards/InfoCard';
 import { IoMdCard } from 'react-icons/io';
 import { LuHandCoins, LuWalletMinimal } from 'react-icons/lu';
-import { addThousandSeparator } from '../../utils/helper';
 import RecentTransactions from '../../components/Dashboard/RecentTransactions';
 import FinanceOverview from '../../components/Dashboard/FinanceOverview';
 import ExpenseTransactions from '../../components/Dashboard/ExpenseTransactions';
 import Last30DaysExpense from '../../components/Dashboard/Last30DaysExpense';
 import RecentIncomeWithChart from '../../components/Dashboard/RecentIncomeWithChart';
 import RecentIncome from '../../components/Dashboard/RecentIncome';
+import { useTheme } from '../../context/ThemeContext';
 
 const Home = () => {
   useUserAuth();
+  const { isDark } = useTheme();
 
   const navigate = useNavigate();
 
@@ -54,22 +55,22 @@ const Home = () => {
           <InfoCard
           icon={<IoMdCard/>}
           label="Total Balance"
-          value={addThousandSeparator(dashboardData?.totalBalance || 0)}
+          value={dashboardData?.totalBalance || 0}
           color="bg-primary"
           />
 
            <InfoCard
           icon={<LuWalletMinimal/>}
           label="Total Income"
-          value={addThousandSeparator(dashboardData?.totalIncome || 0)}
-          color="bg-orange-500"
+          value={dashboardData?.totalIncome || 0}
+          color={isDark ? "bg-cyan-400" : "bg-orange-500"}
           />
 
            <InfoCard
           icon={<LuHandCoins/>}
           label="Total Expense"
-          value={addThousandSeparator(dashboardData?.totalExpense || 0)}
-          color="bg-red-500"
+          value={dashboardData?.totalExpense || 0}
+          color={isDark ? "bg-lime-500" : "bg-red-500"}
           />
         </div>
 
@@ -94,7 +95,7 @@ const Home = () => {
           />
 
           <RecentIncomeWithChart
-          data={dashboardData?.last60daysIncomeTransactions?.transactions?.slice(0,4) || []}
+          data={dashboardData?.last60daysIncomeTransactions?.transactions || []}
           totalIncome={dashboardData?.totalIncome || 0}
           />
 

@@ -32,12 +32,17 @@ axiosInstance.interceptors.response.use(
     (error) => {
         //Handle common errors globally
         if (error.response) {
+            const serverMessage = error.response.data?.message;
+
             if (error.response.status === 401) {
                 //Redirect to login page
                 window.location.href = "/login";
             } else if (error.response.status === 500) {
                 console.error("Server Error:", error.response.data);
-                alert("A server error occurred. Please try again later.");
+                alert(serverMessage || "A server error occurred. Please try again later.");
+            } else if (error.response.status === 503) {
+                console.error("Service Unavailable:", error.response.data);
+                alert(serverMessage || "The assistant is not configured yet.");
             } else if (error.code === "ECONNABORTED") {
                 console.error("Request Timeout:", error.message);
                 alert("The request timed out. Please check your internet connection and try again.");

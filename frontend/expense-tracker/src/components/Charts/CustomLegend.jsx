@@ -1,6 +1,6 @@
 import React from "react";
 
-const CustomLegend = ({ payload }) => {
+const CustomLegend = ({ payload, isDark }) => {
     return (
         <div className="flex flex-wrap justify-center gap-2 mt-4 space-x-6">
             {payload.map((entry, index) => (
@@ -10,7 +10,7 @@ const CustomLegend = ({ payload }) => {
                     style={{ backgroundColor: entry.color}}>
 
                     </div>
-                    <span className="text-xs text-gray-700 font-medium">{entry.value}</span>
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>{entry.value}</span>
                 </div>
             ))}
         </div>

@@ -10,6 +10,9 @@ export const API_PATHS = {
     DASHBOARD: {
         GET_DATA: `/dashboard`,
     },
+    AI: {
+        CHAT: `/ai/message`,
+    },
     INCOME: {
         ADD_INCOME: `/income/add`,
         GET_ALL_INCOME: `/income/get`,
@@ -25,4 +28,8 @@ export const API_PATHS = {
     IMAGE: {
         UPLOAD_IMAGE: `/auth/upload-image`,
     },
+    SETTINGS: {
+        UPDATE_PROFILE: `/settings/update-profile`,
+        CHANGE_PASSWORD: `/settings/change-password`,
+    }
 };

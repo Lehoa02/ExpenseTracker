@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useUserAuth } from '../../hooks/useUserAuth';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import axiosInstance from '../../utils/axiosInstance';
@@ -9,6 +9,7 @@ import Model from '../../components/Modal';
 import AddExpenseForm from '../../components/Expense/AddExpenseForm';
 import ExpenseList from '../../components/Expense/ExpenseList';
 import DeleteAlert from '../../components/DeleteAlert';
+import { filterExpensesByPeriod } from '../../utils/helper';
 
 
 const Expense = () => {
@@ -21,6 +22,15 @@ const Expense = () => {
       data: null,
     });
     const [openAddExpenseModal, setOpenAddExpenseModal] = useState(false);
+    const [expenseFilter, setExpenseFilter] = useState(null);
+
+    const filteredExpenseData = useMemo(() => {
+      if (!expenseFilter) {
+        return expenseData;
+      }
+
+      return filterExpensesByPeriod(expenseData, expenseFilter.groupBy, expenseFilter.bucketKey);
+    }, [expenseData, expenseFilter]);
 
     //Get All Expense Details
   const fetchExpenseDetails = async () => {
@@ -91,6 +101,22 @@ const Expense = () => {
     }
   };
 
+  const handleChartPointClick = (bucket) => {
+    if (!bucket?.bucketKey || !bucket?.groupBy) {
+      return;
+    }
+
+    setExpenseFilter({
+      bucketKey: bucket.bucketKey,
+      groupBy: bucket.groupBy,
+      label: bucket.month,
+    });
+  };
+
+  const clearExpenseFilter = () => {
+    setExpenseFilter(null);
+  };
+
   //handle download expense details
   const handleDownloadExpenseDetails = async () => {
     try {
@@ -127,12 +153,16 @@ const Expense = () => {
               <ExpenseOverview
                 transactions={expenseData}
                 onAddExpense={() => setOpenAddExpenseModal(true)}
+                onPointClick={handleChartPointClick}
+                onGroupByChange={clearExpenseFilter}
               />
           </div>
           <ExpenseList 
-            transactions={expenseData}
+            transactions={filteredExpenseData}
             onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
             onDownload={handleDownloadExpenseDetails}
+            filterLabel={expenseFilter?.label}
+            onClearFilter={clearExpenseFilter}
           />
         </div>
         <Model

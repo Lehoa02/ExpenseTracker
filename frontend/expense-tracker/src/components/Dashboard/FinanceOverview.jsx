@@ -1,11 +1,16 @@
 import React from 'react';
 import CustomPieChart from '../Charts/CustomPieChart';
+import { useTheme } from '../../context/ThemeContext';
 
-const COLORS = ["#875CF5", "#FA2C37", "#FF6900"];
+const COLORS = {
+    light: ["#875CF5", "#FA2C37", "#FF6900"],
+    dark: ["#8B5CF6", "#22D3EE", "#A3E635"],
+};
 
 
 
 const FinanceOverview = ({ totalBalance, totalIncome, totalExpense }) => {
+    const { isDark } = useTheme();
     
     const balanceData = [
         {name: "Total Balance", amount: totalBalance},
@@ -22,8 +27,8 @@ const FinanceOverview = ({ totalBalance, totalIncome, totalExpense }) => {
         <CustomPieChart
         data={balanceData}
         label="Total Balance"
-        totalAmount={`$${totalBalance}`}
-        colors={COLORS}
+        totalAmount={totalBalance}
+        colors={isDark ? COLORS.dark : COLORS.light}
         showTextAnchor
         />
         </div>

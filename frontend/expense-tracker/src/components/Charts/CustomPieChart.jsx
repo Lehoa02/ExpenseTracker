@@ -2,8 +2,27 @@ import React from 'react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import CustomTooltip from './CustomTooltip';
 import CustomLegend from './CustomLegend';
+import { useTheme } from '../../context/ThemeContext';
+import { addThousandSeparator } from '../../utils/helper';
+
+const PIE_PALETTE = {
+    light: {
+        centerLabel: '#666',
+        centerValue: '#333',
+        hoverStroke: '#ffffff',
+    },
+    dark: {
+        centerLabel: '#94a3b8',
+        centerValue: '#e2e8f0',
+        hoverStroke: '#cbd5e1',
+    },
+};
 
 const CustomPieChart = ({ data, label, totalAmount, colors, showTextAnchor }) => {
+    const { isDark } = useTheme();
+    const palette = isDark ? PIE_PALETTE.dark : PIE_PALETTE.light;
+    const [activeIndex, setActiveIndex] = React.useState(-1);
+
     return <ResponsiveContainer width="100%" height={380}>
         <PieChart>
             <Pie
@@ -15,13 +34,21 @@ const CustomPieChart = ({ data, label, totalAmount, colors, showTextAnchor }) =>
                 innerRadius={100}
                 dataKey="amount"
                 nameKey="name"
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(-1)}
             >
                 {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                    <Cell
+                        key={`cell-${index}`}
+                        fill={colors[index % colors.length]}
+                        opacity={activeIndex === -1 || activeIndex === index ? 1 : 0.45}
+                        stroke={activeIndex === index ? palette.hoverStroke : 'transparent'}
+                        strokeWidth={activeIndex === index ? 2 : 0}
+                    />
                 ))}
             </Pie>
-            <Tooltip content={CustomTooltip} />
-            <Legend content={CustomLegend} />
+            <Tooltip content={(props) => <CustomTooltip {...props} isDark={isDark} />} />
+            <Legend content={(props) => <CustomLegend {...props} isDark={isDark} />} />
                 {showTextAnchor && (
                     <>
                     <text 
@@ -30,7 +57,7 @@ const CustomPieChart = ({ data, label, totalAmount, colors, showTextAnchor }) =>
                         dy={-25}
                         textAnchor="middle" 
                         fontSize="14px"
-                        fill="#666">
+                        fill={palette.centerLabel}>
                         {label}
                     </text>
                     <text
@@ -39,10 +66,10 @@ const CustomPieChart = ({ data, label, totalAmount, colors, showTextAnchor }) =>
                         dy={0}
                         textAnchor="middle"
                         fontSize="24px"
-                        fill="#333"
+                        fill={palette.centerValue}
                         fontWeight="semi-bold"
                         >
-                            {totalAmount}
+                            ${addThousandSeparator(totalAmount)}
                         </text>
                     </>
                 )}
