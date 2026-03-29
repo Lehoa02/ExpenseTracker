@@ -45,29 +45,56 @@ export const prepareExpenseBarChartData = (data = []) => {
     return chartData;
 };
 
+export const prepareExpenseCategoryChartData = (data = []) => {
+    const groupedData = new Map();
+
+    data.forEach((item) => {
+        const category = item?.category?.trim();
+        const amount = Number(item?.amount) || 0;
+
+        if (!category) return;
+
+        groupedData.set(category, (groupedData.get(category) || 0) + amount);
+    });
+
+    return Array.from(groupedData.entries())
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount);
+};
+
 export const prepareIncomeBarChartData = (data = [], groupBy = "month") => {
     const buckets = new Map();
     const validItems = [...data]
         .filter((item) => item?.date)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const uniqueYears = new Set(validItems.map((item) => moment.utc(item.date).format("YYYY")));
+        const isThirtyDayView = groupBy === "30days";
+    const rangeEnd = moment.utc().endOf("day");
+        const rangeStart = rangeEnd.clone().subtract(29, "days").startOf("day");
+        const filteredItems = isThirtyDayView
+        ? validItems.filter((item) => {
+            const date = moment.utc(item.date);
+            return date.isBetween(rangeStart, rangeEnd, "day", "[]");
+        })
+        : validItems;
+
+    const uniqueYears = new Set(filteredItems.map((item) => moment.utc(item.date).format("YYYY")));
     const useShortMonthLabels = uniqueYears.size <= 1;
 
-    validItems.forEach((item) => {
+    filteredItems.forEach((item) => {
         const date = moment.utc(item.date);
         const bucketKey =
-            groupBy === "day"
+                groupBy === "30days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")
                 : groupBy === "year"
                     ? date.format("YYYY")
                     : date.format("YYYY-MM");
         const label =
-            groupBy === "day"
+                groupBy === "30days" || groupBy === "day"
                 ? (uniqueYears.size <= 1 ? date.format("Do MMM") : date.format("Do MMM YYYY"))
                 : groupBy === "year"
                     ? date.format("YYYY")
-                : (useShortMonthLabels ? date.format("MMM") : date.format("MMM YYYY"));
+                    : (useShortMonthLabels ? date.format("MMM") : date.format("MMM YYYY"));
         const amount = Number(item?.amount) || 0;
         const category = item?.source || "Income";
 
@@ -97,6 +124,23 @@ export const prepareIncomeBarChartData = (data = [], groupBy = "month") => {
         }));
 };
 
+export const prepareIncomeCategoryChartData = (data = []) => {
+    const groupedData = new Map();
+
+    data.forEach((item) => {
+        const source = item?.source?.trim();
+        const amount = Number(item?.amount) || 0;
+
+        if (!source) return;
+
+        groupedData.set(source, (groupedData.get(source) || 0) + amount);
+    });
+
+    return Array.from(groupedData.entries())
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount);
+};
+
 export const filterTransactionsByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
     if (!bucketKey) {
         return data;
@@ -107,7 +151,7 @@ export const filterTransactionsByPeriod = (data = [], groupBy = "day", bucketKey
 
         const date = moment.utc(item.date);
         const currentKey =
-            groupBy === "day"
+            groupBy === "30days" || groupBy === "7days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")
                 : groupBy === "year"
                     ? date.format("YYYY")
@@ -123,19 +167,29 @@ export const prepareExpenseLineChartData = (data = [], groupBy = "day") => {
         .filter((item) => item?.date)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const uniqueYears = new Set(validItems.map((item) => moment.utc(item.date).format("YYYY")));
+    const isSevenDayView = groupBy === "7days";
+    const rangeEnd = moment.utc().endOf("day");
+    const rangeStart = rangeEnd.clone().subtract(6, "days").startOf("day");
+    const filteredItems = isSevenDayView
+        ? validItems.filter((item) => {
+            const date = moment.utc(item.date);
+            return date.isBetween(rangeStart, rangeEnd, "day", "[]");
+        })
+        : validItems;
+
+    const uniqueYears = new Set(filteredItems.map((item) => moment.utc(item.date).format("YYYY")));
     const useShortMonthLabels = uniqueYears.size <= 1;
 
-    validItems.forEach((item) => {
+    filteredItems.forEach((item) => {
         const date = moment.utc(item.date);
         const bucketKey =
-            groupBy === "day"
+            groupBy === "7days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")
                 : groupBy === "year"
                     ? date.format("YYYY")
                     : date.format("YYYY-MM");
         const label =
-            groupBy === "day"
+            groupBy === "7days" || groupBy === "day"
                 ? (uniqueYears.size <= 1 ? date.format("Do MMM") : date.format("Do MMM YYYY"))
                 : groupBy === "year"
                     ? date.format("YYYY")
@@ -167,7 +221,7 @@ export const prepareExpenseLineChartData = (data = [], groupBy = "day") => {
             amount: value.amount,
             category: value.categories.size === 1 ? Array.from(value.categories)[0] : "Multiple Expenses",
         }));
-}
+};
 
 export const filterExpensesByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
     return filterTransactionsByPeriod(data, groupBy, bucketKey);

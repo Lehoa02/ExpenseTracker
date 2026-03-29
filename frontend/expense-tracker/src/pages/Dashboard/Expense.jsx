@@ -10,6 +10,7 @@ import AddExpenseForm from '../../components/Expense/AddExpenseForm';
 import ExpenseList from '../../components/Expense/ExpenseList';
 import DeleteAlert from '../../components/DeleteAlert';
 import { filterExpensesByPeriod } from '../../utils/helper';
+import ExpenseCategoryChart from '../../components/Expense/ExpenseCategoryChart';
 
 
 const Expense = () => {
@@ -23,14 +24,25 @@ const Expense = () => {
     });
     const [openAddExpenseModal, setOpenAddExpenseModal] = useState(false);
     const [expenseFilter, setExpenseFilter] = useState(null);
+    const [categoryFilter, setCategoryFilter] = useState(null);
 
-    const filteredExpenseData = useMemo(() => {
+    const periodFilteredExpenseData = useMemo(() => {
       if (!expenseFilter) {
         return expenseData;
       }
 
       return filterExpensesByPeriod(expenseData, expenseFilter.groupBy, expenseFilter.bucketKey);
     }, [expenseData, expenseFilter]);
+
+    const filteredExpenseData = useMemo(() => {
+      let data = periodFilteredExpenseData;
+
+      if (categoryFilter) {
+        data = data.filter((item) => item?.category?.trim() === categoryFilter);
+      }
+
+      return data;
+    }, [periodFilteredExpenseData, categoryFilter]);
 
     //Get All Expense Details
   const fetchExpenseDetails = async () => {
@@ -117,6 +129,14 @@ const Expense = () => {
     setExpenseFilter(null);
   };
 
+  const handleCategorySelect = (category) => {
+    setCategoryFilter((currentCategory) => (currentCategory === category ? null : category));
+  };
+
+  const clearCategoryFilter = () => {
+    setCategoryFilter(null);
+  };
+
   //handle download expense details
   const handleDownloadExpenseDetails = async () => {
     try {
@@ -149,12 +169,20 @@ const Expense = () => {
     <DashboardLayout activeMenu="Expense">
       <div className='my-5 mx-auto'>
         <div className='grid grid-cols-1 gap-6'>
-          <div className=''>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <ExpenseOverview
                 transactions={expenseData}
                 onAddExpense={() => setOpenAddExpenseModal(true)}
                 onPointClick={handleChartPointClick}
                 onGroupByChange={clearExpenseFilter}
+                expenseFilter={expenseFilter}
+                onClearFilter={clearExpenseFilter}
+              />
+              <ExpenseCategoryChart
+                transactions={periodFilteredExpenseData}
+                selectedCategory={categoryFilter}
+                onCategorySelect={handleCategorySelect}
+                onClearCategory={clearCategoryFilter}
               />
           </div>
           <ExpenseList 
@@ -162,7 +190,9 @@ const Expense = () => {
             onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
             onDownload={handleDownloadExpenseDetails}
             filterLabel={expenseFilter?.label}
+            categoryLabel={categoryFilter}
             onClearFilter={clearExpenseFilter}
+            onClearCategoryFilter={clearCategoryFilter}
           />
         </div>
         <Model

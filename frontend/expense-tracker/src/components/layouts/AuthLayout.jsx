@@ -1,11 +1,12 @@
 import React from 'react'
 import CARD_2 from "../../assets/images/temp.jpeg"
-import { LuMoon, LuSun, LuTrendingUpDown } from "react-icons/lu"
+import { LuTrendingUpDown } from "react-icons/lu"
 import { addThousandSeparator } from '../../utils/helper';
 import { useTheme } from '../../context/ThemeContext'
+import ThemeToggleButton from './ThemeToggleButton'
 
 const AuthLayout = ({children}) => {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark } = useTheme();
 
   const rightPanelClassName = isDark
     ? 'hidden md:block w-[40vw] h-screen overflow-hidden p-8 relative bg-slate-950'
@@ -27,15 +28,7 @@ const AuthLayout = ({children}) => {
         <div className="w-screen h-screen md:w-[60vw] px-6 sm:px-10 lg:px-12 pt-8 pb-12 bg-white dark:bg-slate-950">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-medium text-black dark:text-slate-100">Expense Tracker</h2>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="theme-toggle-icon-only ml-auto text-gray-700 hover:text-gray-500 dark:text-slate-200 dark:hover:text-sky-400"
-                aria-label="Toggle theme"
-                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {isDark ? <LuSun className="text-lg" /> : <LuMoon className="text-lg" />}
-              </button>
+              <ThemeToggleButton className="theme-toggle-icon-only ml-auto text-gray-700 hover:text-gray-500 dark:text-slate-200 dark:hover:text-sky-400" iconClassName="text-lg" />
             </div>
             {children}
         </div>

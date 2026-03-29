@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceArea } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { addThousandSeparator } from '../../utils/helper';
 
@@ -26,12 +26,18 @@ const BAR_PALETTE = {
     },
 };
 
-const CustomBarChart = ({ data, onPointClick }) => {
+const CustomBarChart = ({ data, onPointClick, selectedPointKey }) => {
     const { isDark } = useTheme();
     const palette = isDark ? BAR_PALETTE.dark : BAR_PALETTE.light;
-    const [activeIndex, setActiveIndex] = React.useState(-1);
+    const [hoveredIndex, setHoveredIndex] = React.useState(-1);
 
     const displayKey = data[0]?.month ? "month" : "category";
+    const selectedIndex = React.useMemo(
+        () => data.findIndex((entry) => entry?.bucketKey === selectedPointKey),
+        [data, selectedPointKey]
+    );
+    const activeIndex = selectedIndex >= 0 ? selectedIndex : hoveredIndex;
+    const highlightedEntry = activeIndex >= 0 ? data[activeIndex] : null;
 
 //Function to alternate colors
 const getBarColor = (index) => {
@@ -61,6 +67,16 @@ const CustomTooltip = ({ active, payload }) => {
             <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={data}>
                     <CartesianGrid stroke="none" />
+                    {highlightedEntry && (
+                        <ReferenceArea
+                            x1={highlightedEntry[displayKey]}
+                            x2={highlightedEntry[displayKey]}
+                            y1={0}
+                            y2={highlightedEntry.amount}
+                            fill={palette.hoverCursor}
+                            strokeOpacity={0}
+                        />
+                    )}
                     <XAxis dataKey={displayKey} tick={{fontSize: 12, fill: palette.axis}} />
                     <YAxis tick={{fontSize: 12, fill: palette.axis}} stroke='none' tickFormatter={(value) => addThousandSeparator(value)} />
                     <Tooltip content={CustomTooltip} cursor={{ fill: palette.hoverCursor, radius: 8 }} />
@@ -69,13 +85,13 @@ const CustomTooltip = ({ active, payload }) => {
                         dataKey="amount"
                         fill={palette.bars[0]}
                         radius={[10,10,0,0]}
-                        onMouseEnter={(_, index) => setActiveIndex(index)}
-                        onMouseLeave={() => setActiveIndex(-1)}
+                        onMouseEnter={(_, index) => setHoveredIndex(index)}
+                        onMouseLeave={() => setHoveredIndex(-1)}
                     >
                         {data.map((entry, index) => (
                             <Cell
                                 key={index}
-                                fill={activeIndex === index ? getHoverBarColor(index) : getBarColor(index)}
+                                fill={hoveredIndex === index && selectedIndex < 0 ? getHoverBarColor(index) : getBarColor(index)}
                                 style={{ cursor: onPointClick ? 'pointer' : 'default' }}
                                 onClick={() => onPointClick?.(entry)}
                             />

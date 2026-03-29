@@ -3,7 +3,7 @@ import { LuDownload, LuX } from "react-icons/lu";
 import moment from "moment";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
 
-const ExpenseList = ({ transactions, onDelete, onDownload, filterLabel, onClearFilter }) => {
+const ExpenseList = ({ transactions, onDelete, onDownload, filterLabel, categoryLabel, onClearFilter }) => {
     return (
         <div className="card">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -13,6 +13,11 @@ const ExpenseList = ({ transactions, onDelete, onDownload, filterLabel, onClearF
                         {filterLabel && (
                             <span className="text-sm text-gray-500 dark:text-slate-400">
                                 filtered for <span className="font-semibold text-gray-800 dark:text-slate-100">{filterLabel}</span>
+                            </span>
+                        )}
+                        {categoryLabel && (
+                            <span className="text-sm text-gray-500 dark:text-slate-400">
+                                {filterLabel ? '•' : 'filtered for'} <span className="font-semibold text-gray-800 dark:text-slate-100">{categoryLabel}</span>
                             </span>
                         )}
                     </div>

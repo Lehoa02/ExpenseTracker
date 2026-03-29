@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import IncomeList from '../../components/Income/IncomeList';
 import DeleteAlert from '../../components/DeleteAlert';
 import { filterIncomeByPeriod } from '../../utils/helper';
+import IncomeSourceChart from '../../components/Income/IncomeSourceChart';
 
 
 const Income = () => {
@@ -22,14 +23,27 @@ const Income = () => {
   });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
   const [incomeFilter, setIncomeFilter] = useState(null);
+  const [sourceFilter, setSourceFilter] = useState(null);
 
-  const filteredIncomeData = useMemo(() => {
-    if (!incomeFilter) {
-      return incomeData;
+  const periodFilteredIncomeData = useMemo(() => {
+    let data = incomeData;
+
+    if (incomeFilter) {
+      data = filterIncomeByPeriod(data, incomeFilter.groupBy, incomeFilter.bucketKey);
     }
 
-    return filterIncomeByPeriod(incomeData, incomeFilter.groupBy, incomeFilter.bucketKey);
+    return data;
   }, [incomeData, incomeFilter]);
+
+  const filteredIncomeData = useMemo(() => {
+    let data = periodFilteredIncomeData;
+
+    if (sourceFilter) {
+      data = data.filter((item) => item?.source?.trim() === sourceFilter);
+    }
+
+    return data;
+  }, [periodFilteredIncomeData, sourceFilter]);
 
   //Get All Income Details
   const fetchIncomeDetails = async () => {
@@ -116,6 +130,19 @@ const Income = () => {
     setIncomeFilter(null);
   };
 
+  const handleSourceSelect = (source) => {
+    setSourceFilter((currentSource) => (currentSource === source ? null : source));
+  };
+
+  const clearSourceFilter = () => {
+    setSourceFilter(null);
+  };
+
+  const clearAllFilters = () => {
+    clearIncomeFilter();
+    clearSourceFilter();
+  };
+
   //handle download income details
   const handleDownloadIncomeDetails = async () => {
     try {
@@ -146,13 +173,22 @@ const Income = () => {
   return (
     <DashboardLayout activeMenu="Income">
       <div className='my-5 mx-auto'>
-        <div className='grid grid-cols-1 gap-6'>
-          <div className=''>
+        <div className='space-y-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             <IncomeOverview
             transactions={incomeData}
             onAddIncome={() => setOpenAddIncomeModal(true)}
             onPointClick={handleChartPointClick}
             onGroupByChange={clearIncomeFilter}
+            incomeFilter={incomeFilter}
+            onClearFilter={clearIncomeFilter}
+            />
+          
+            <IncomeSourceChart
+              transactions={periodFilteredIncomeData}
+              selectedSource={sourceFilter}
+              onSourceSelect={handleSourceSelect}
+              onClearSource={clearSourceFilter}
             />
           </div>
 
@@ -161,7 +197,8 @@ const Income = () => {
             onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
             onDownload={handleDownloadIncomeDetails}
             filterLabel={incomeFilter?.label}
-            onClearFilter={clearIncomeFilter}
+            sourceLabel={sourceFilter}
+            onClearFilters={clearAllFilters}
           />
         </div>
 

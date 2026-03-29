@@ -3,7 +3,14 @@ import { LuDownload, LuX } from "react-icons/lu";
 import moment from "moment";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
 
-const IncomeList = ({ transactions, onDelete, onDownload, filterLabel, onClearFilter }) => {
+const IncomeList = ({
+    transactions,
+    onDelete,
+    onDownload,
+    filterLabel,
+    sourceLabel,
+    onClearFilters,
+}) => {
     return (
         <div className="card">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -15,17 +22,22 @@ const IncomeList = ({ transactions, onDelete, onDownload, filterLabel, onClearFi
                         Filtered for <span className="font-semibold text-gray-800 dark:text-slate-100">{filterLabel}</span>
                     </span>               
             )}
+                {sourceLabel && (
+                    <span className="text-sm text-gray-500 dark:text-slate-400">
+                        {filterLabel ? '•' : 'Filtered for'} <span className="font-semibold text-gray-800 dark:text-slate-100">{sourceLabel}</span>
+                    </span>
+                )}
             </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {filterLabel && onClearFilter && (
+                    {(filterLabel || sourceLabel) && onClearFilters && (
                         <button
                             type="button"
                             className="card-btn px-3"
-                            onClick={onClearFilter}
-                            title="Clear filter"
-                            aria-label="Clear filter"
+                            onClick={onClearFilters}
+                            title="Clear filters"
+                            aria-label="Clear filters"
                         >
                             <LuX className="text-base" />
                         </button>
