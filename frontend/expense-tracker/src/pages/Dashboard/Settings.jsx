@@ -9,6 +9,7 @@ import uploadImage from '../../utils/uploadImage';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPath';
 import { toast } from 'react-hot-toast';
+import { validatePassword } from '../../utils/helper';
 
 const Settings = () => {
   useUserAuth();
@@ -21,6 +22,10 @@ const Settings = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [photoRemoved, setPhotoRemoved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -97,6 +102,44 @@ const Settings = () => {
       toast.error(error.response?.data?.message || 'Unable to update profile');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (event) => {
+    event.preventDefault();
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+
+    if (!validatePassword(newPassword)) {
+      toast.error('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirm password do not match');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await axiosInstance.put(API_PATHS.SETTINGS.CHANGE_PASSWORD, {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+
+      toast.success('Password updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to change password');
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -200,6 +243,51 @@ const Settings = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </form>
+
+        <form onSubmit={handlePasswordChange} className="card mt-6 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-black dark:text-slate-100">Change Password</h2>
+            <p className="text-sm text-gray-600 dark:text-slate-300 mt-1">
+              Use a strong password with at least 8 characters, uppercase, lowercase, a number, and a special character.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              value={currentPassword}
+              onChange={({ target }) => setCurrentPassword(target.value)}
+              placeholder="Current password"
+              label="Current Password"
+              type="password"
+            />
+
+            <Input
+              value={newPassword}
+              onChange={({ target }) => setNewPassword(target.value)}
+              placeholder="New password"
+              label="New Password"
+              type="password"
+            />
+
+            <Input
+              value={confirmPassword}
+              onChange={({ target }) => setConfirmPassword(target.value)}
+              placeholder="Confirm password"
+              label="Confirm Password"
+              type="password"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-5">
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isChangingPassword}
+            >
+              {isChangingPassword ? 'UPDATING...' : 'UPDATE PASSWORD'}
+            </button>
           </div>
         </form>
       </div>

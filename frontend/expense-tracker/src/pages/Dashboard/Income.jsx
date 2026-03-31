@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import moment from 'moment-timezone';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import IncomeOverview from '../../components/Income/IncomeOverview';
 import axiosInstance from '../../utils/axiosInstance';
@@ -9,7 +10,7 @@ import AddIncomeForm from '../../components/Income/AddIncomeForm';
 import { toast } from 'react-hot-toast';
 import IncomeList from '../../components/Income/IncomeList';
 import DeleteAlert from '../../components/DeleteAlert';
-import { filterIncomeByPeriod } from '../../utils/helper';
+import { filterIncomeByPeriod, getUserTimeZone } from '../../utils/helper';
 import IncomeSourceChart from '../../components/Income/IncomeSourceChart';
 
 
@@ -23,6 +24,7 @@ const Income = () => {
   });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
   const [incomeFilter, setIncomeFilter] = useState(null);
+  const [incomeOverviewGroupBy, setIncomeOverviewGroupBy] = useState('30days');
   const [sourceFilter, setSourceFilter] = useState(null);
 
   const periodFilteredIncomeData = useMemo(() => {
@@ -35,6 +37,31 @@ const Income = () => {
     return data;
   }, [incomeData, incomeFilter]);
 
+  const incomeSourceChartData = useMemo(() => {
+    let data = incomeData;
+    const timeZone = getUserTimeZone();
+
+    if (incomeOverviewGroupBy === '30days' || incomeOverviewGroupBy === 'month') {
+      const rangeEnd = moment.tz(timeZone).endOf('day');
+      const rangeStart = incomeOverviewGroupBy === '30days'
+        ? rangeEnd.clone().subtract(29, 'days').startOf('day')
+        : rangeEnd.clone().subtract(5, 'months').startOf('month');
+      const rangeUnit = incomeOverviewGroupBy === '30days' ? 'day' : 'month';
+
+      data = data.filter((item) => {
+        if (!item?.date) return false;
+
+        return moment.tz(item.date, item.timezone || timeZone).isBetween(rangeStart, rangeEnd, rangeUnit, '[]');
+      });
+    }
+
+    if (incomeFilter) {
+      data = filterIncomeByPeriod(data, incomeFilter.groupBy, incomeFilter.bucketKey);
+    }
+
+    return data;
+  }, [incomeData, incomeFilter, incomeOverviewGroupBy]);
+
   const filteredIncomeData = useMemo(() => {
     let data = periodFilteredIncomeData;
 
@@ -44,6 +71,15 @@ const Income = () => {
 
     return data;
   }, [periodFilteredIncomeData, sourceFilter]);
+
+  const recentIncomeTransactions = useMemo(
+    () =>
+      [...incomeData]
+        .filter((item) => item?.source)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5),
+    [incomeData]
+  );
 
   //Get All Income Details
   const fetchIncomeDetails = async () => {
@@ -67,7 +103,7 @@ const Income = () => {
 
   //Handle Add Income
   const handleAddIncome = async (income) => {
-    const { amount, source, date, icon } = income;  
+    const { amount, source, date, icon, isRecurring, frequency } = income;  
 
     //Validation check
     if(!source.trim()) {
@@ -86,11 +122,15 @@ const Income = () => {
     }
     
     try {
+      const timeZone = getUserTimeZone();
       const response = await axiosInstance.post(`${API_PATHS.INCOME.ADD_INCOME}`, {
         amount,
         source,
         date,
         icon,
+        isRecurring,
+        frequency,
+        timezone: timeZone,
       });
 
       setOpenAddIncomeModal(false);
@@ -114,6 +154,17 @@ const Income = () => {
     }
   };
 
+  const handleStopRecurringIncome = async (templateId) => {
+    try {
+      await axiosInstance.patch(API_PATHS.INCOME.STOP_RECURRING(templateId));
+      toast.success('Recurring income sequence stopped');
+      fetchIncomeDetails();
+    } catch (error) {
+      console.log("Error stopping recurring income:", error.response?.data?.message || error.message);
+      toast.error('Unable to stop recurring income sequence');
+    }
+  };
+
    const handleChartPointClick = (bucket) => {
     if (!bucket?.bucketKey || !bucket?.groupBy) {
       return;
@@ -128,6 +179,12 @@ const Income = () => {
 
   const clearIncomeFilter = () => {
     setIncomeFilter(null);
+  };
+
+  const handleIncomeGroupByChange = (groupBy) => {
+    setIncomeOverviewGroupBy(groupBy);
+    clearIncomeFilter();
+    clearSourceFilter();
   };
 
   const handleSourceSelect = (source) => {
@@ -179,13 +236,13 @@ const Income = () => {
             transactions={incomeData}
             onAddIncome={() => setOpenAddIncomeModal(true)}
             onPointClick={handleChartPointClick}
-            onGroupByChange={clearIncomeFilter}
+            onGroupByChange={handleIncomeGroupByChange}
             incomeFilter={incomeFilter}
             onClearFilter={clearIncomeFilter}
             />
           
             <IncomeSourceChart
-              transactions={periodFilteredIncomeData}
+              transactions={incomeSourceChartData}
               selectedSource={sourceFilter}
               onSourceSelect={handleSourceSelect}
               onClearSource={clearSourceFilter}
@@ -199,6 +256,7 @@ const Income = () => {
             filterLabel={incomeFilter?.label}
             sourceLabel={sourceFilter}
             onClearFilters={clearAllFilters}
+            onStopRecurring={handleStopRecurringIncome}
           />
         </div>
 
@@ -208,7 +266,8 @@ const Income = () => {
           title="Add Income"
           >
             <AddIncomeForm 
-            onAddIncome={handleAddIncome} 
+            onAddIncome={handleAddIncome}
+            recentTransactions={recentIncomeTransactions}
             />
           </Modal>
 

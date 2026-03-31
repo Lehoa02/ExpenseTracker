@@ -58,7 +58,7 @@ const ExpenseOverview = ({
                                     : "text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-100"
                             }`}
                         >
-                            Months
+                            6 Months
                         </button>
                         <button
                             type="button"

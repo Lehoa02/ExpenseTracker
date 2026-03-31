@@ -1,5 +1,6 @@
 import React from 'react'
-import CARD_2 from "../../assets/images/temp.jpeg"
+import CARD_2 from "../../assets/images/image_light.png"
+import CARD_2_DARK from "../../assets/images/image_dark.png"
 import { LuTrendingUpDown } from "react-icons/lu"
 import { addThousandSeparator } from '../../utils/helper';
 import { useTheme } from '../../context/ThemeContext'
@@ -57,8 +58,8 @@ const AuthLayout = ({children}) => {
 
             {/* info graphic */}
             <img
-            src={CARD_2}
-            className={isDark ? 'w-64 lg:w-[90%] absolute bottom-10 z-20 shadow-lg shadow-black/40' : 'w-64 lg:w-[90%] absolute bottom-10 z-20 shadow-lg shadow-blue-400/15'}
+            src={isDark ? CARD_2_DARK : CARD_2}
+            className={isDark ? 'w-64 lg:w-[90%] absolute bottom-10 z-20 rounded-3xl shadow-lg shadow-black/40' : 'w-64 lg:w-[90%] absolute bottom-10 z-20 rounded-3xl shadow-lg shadow-blue-400/15'}
             alt="Expense tracker preview"
             />
         </div>

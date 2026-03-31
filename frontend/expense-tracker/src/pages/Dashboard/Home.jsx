@@ -14,6 +14,7 @@ import Last30DaysExpense from '../../components/Dashboard/Last30DaysExpense';
 import RecentIncomeWithChart from '../../components/Dashboard/RecentIncomeWithChart';
 import RecentIncome from '../../components/Dashboard/RecentIncome';
 import { useTheme } from '../../context/ThemeContext';
+import ProfitSummory from '../../components/Dashboard/ProfitSummory';
 
 const Home = () => {
   useUserAuth();
@@ -72,6 +73,17 @@ const Home = () => {
           value={dashboardData?.totalExpense || 0}
           color={isDark ? "bg-lime-500" : "bg-red-500"}
           />
+        </div>
+
+        <div className='grid grid-cols-1 md:grid-cols-1 gap-6 mt-6'>
+
+          <ProfitSummory
+          profitByMonth={dashboardData?.profitByMonth || []}
+          incomeTransactions={dashboardData?.last60daysIncomeTransactions?.transactions || []}
+          expenseTransactions={dashboardData?.last30daysExpenseTransactions?.transactions || []}
+          onSeeMore={() => navigate("/income")}
+          />
+
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>

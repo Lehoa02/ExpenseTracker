@@ -9,7 +9,8 @@ import Model from '../../components/Modal';
 import AddExpenseForm from '../../components/Expense/AddExpenseForm';
 import ExpenseList from '../../components/Expense/ExpenseList';
 import DeleteAlert from '../../components/DeleteAlert';
-import { filterExpensesByPeriod } from '../../utils/helper';
+import { filterExpensesByOverviewGroup, filterExpensesByPeriod } from '../../utils/helper';
+import { getUserTimeZone } from '../../utils/helper';
 import ExpenseCategoryChart from '../../components/Expense/ExpenseCategoryChart';
 
 
@@ -24,15 +25,43 @@ const Expense = () => {
     });
     const [openAddExpenseModal, setOpenAddExpenseModal] = useState(false);
     const [expenseFilter, setExpenseFilter] = useState(null);
+    const [expenseOverviewGroupBy, setExpenseOverviewGroupBy] = useState('7days');
     const [categoryFilter, setCategoryFilter] = useState(null);
 
+    const recentExpenseTransactions = useMemo(
+      () =>
+        Array.from(
+          [...expenseData]
+          .filter((item) => item?.category)
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .reduce((templates, item) => {
+            const categoryKey = item.category.trim().toLowerCase();
+
+            if (!templates.has(categoryKey)) {
+              templates.set(categoryKey, item);
+            }
+
+            return templates;
+          }, new Map())
+          .values()
+        ),
+      [expenseData]
+    );
+
+    const overviewFilteredExpenseData = useMemo(
+      () => filterExpensesByOverviewGroup(expenseData, expenseOverviewGroupBy),
+      [expenseData, expenseOverviewGroupBy]
+    );
+
     const periodFilteredExpenseData = useMemo(() => {
-      if (!expenseFilter) {
-        return expenseData;
+      let data = overviewFilteredExpenseData;
+
+      if (expenseFilter) {
+        data = filterExpensesByPeriod(data, expenseFilter.groupBy, expenseFilter.bucketKey);
       }
 
-      return filterExpensesByPeriod(expenseData, expenseFilter.groupBy, expenseFilter.bucketKey);
-    }, [expenseData, expenseFilter]);
+      return data;
+    }, [overviewFilteredExpenseData, expenseFilter]);
 
     const filteredExpenseData = useMemo(() => {
       let data = periodFilteredExpenseData;
@@ -66,7 +95,7 @@ const Expense = () => {
 
   //Handle Add Expense
   const handleAddExpense = async (expense) => {
-    const { amount, category, date, icon } = expense;  
+    const { amount, category, date, icon, isRecurring, frequency } = expense;  
 
     //Validation check
     if(!category.trim()) {
@@ -85,11 +114,15 @@ const Expense = () => {
     }
     
     try {
+      const timeZone = getUserTimeZone();
       const response = await axiosInstance.post(`${API_PATHS.EXPENSE.ADD_EXPENSE}`, {
         amount,
         category,
         date,
         icon,
+        isRecurring,
+        frequency,
+        timezone: timeZone,
       });
 
       setOpenAddExpenseModal(false);
@@ -113,6 +146,17 @@ const Expense = () => {
     }
   };
 
+  const handleStopRecurringExpense = async (templateId) => {
+    try {
+      await axiosInstance.patch(API_PATHS.EXPENSE.STOP_RECURRING(templateId));
+      toast.success('Recurring expense sequence stopped');
+      fetchExpenseDetails();
+    } catch (error) {
+      console.log("Error stopping recurring expense:", error.response?.data?.message || error.message);
+      toast.error('Unable to stop recurring expense sequence');
+    }
+  };
+
   const handleChartPointClick = (bucket) => {
     if (!bucket?.bucketKey || !bucket?.groupBy) {
       return;
@@ -128,6 +172,12 @@ const Expense = () => {
   const clearExpenseFilter = () => {
     setExpenseFilter(null);
   };
+
+    const handleExpenseGroupByChange = (groupBy) => {
+      setExpenseOverviewGroupBy(groupBy);
+      clearExpenseFilter();
+      clearCategoryFilter();
+    };
 
   const handleCategorySelect = (category) => {
     setCategoryFilter((currentCategory) => (currentCategory === category ? null : category));
@@ -174,7 +224,7 @@ const Expense = () => {
                 transactions={expenseData}
                 onAddExpense={() => setOpenAddExpenseModal(true)}
                 onPointClick={handleChartPointClick}
-                onGroupByChange={clearExpenseFilter}
+                onGroupByChange={handleExpenseGroupByChange}
                 expenseFilter={expenseFilter}
                 onClearFilter={clearExpenseFilter}
               />
@@ -193,6 +243,7 @@ const Expense = () => {
             categoryLabel={categoryFilter}
             onClearFilter={clearExpenseFilter}
             onClearCategoryFilter={clearCategoryFilter}
+            onStopRecurring={handleStopRecurringExpense}
           />
         </div>
         <Model
@@ -200,7 +251,7 @@ const Expense = () => {
         onClose={() => setOpenAddExpenseModal(false)}
         title="Add Expense"
       >
-        <AddExpenseForm onAddExpense={handleAddExpense} />
+            <AddExpenseForm onAddExpense={handleAddExpense} recentTransactions={recentExpenseTransactions.slice(0, 5)} />
       </Model>
 
       <Model 

@@ -1,7 +1,8 @@
 import React from "react";
 import { LuDownload, LuX } from "react-icons/lu";
-import moment from "moment";
+import moment from "moment-timezone";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
+import { getUserTimeZone } from "../../utils/helper";
 
 const IncomeList = ({
     transactions,
@@ -10,6 +11,7 @@ const IncomeList = ({
     filterLabel,
     sourceLabel,
     onClearFilters,
+    onStopRecurring,
 }) => {
     return (
         <div className="card">
@@ -56,10 +58,14 @@ const IncomeList = ({
                         key={income._id}
                         title={income.source}
                         icon={income.icon}
-                        date={moment.utc(income.date).format("Do MMM, YYYY")}
+                        date={moment.tz(income.date, income.timezone || getUserTimeZone()).format("Do MMM, YYYY")}
                         amount={income.amount}
                         type="income"
                         onDelete={() => onDelete(income._id)}
+                        recurringTemplateId={income.recurringTemplateId}
+                        recurrenceStatus={income.recurrenceStatus}
+                        recurrenceFrequency={income.recurrenceFrequency}
+                        onStopRecurring={income.recurringTemplateId ? () => onStopRecurring(income.recurringTemplateId) : undefined}
                     />
                 ))}
             </div>

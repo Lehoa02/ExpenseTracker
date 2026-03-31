@@ -1,6 +1,8 @@
 const User = require('../models/User.js');
 const jwt = require('jsonwebtoken');
 
+const passwordRules = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
 //Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -18,6 +20,12 @@ const generateToken = (id) => {
     //Validation: Check missing fields
     if (!fullName || !email || !password) {
         return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (!passwordRules.test(password)) {
+        return res.status(400).json({
+            message: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character',
+        });
     }
 
     try {

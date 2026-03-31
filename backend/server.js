@@ -9,6 +9,7 @@ const expenseRoutes = require("./routes/expenseRoutes.js");
 const dashboardRoutes = require("./routes/dashboardRoutes.js");
 const settingsRoutes = require("./routes/settingsRoutes.js");
 const chatRoutes = require("./routes/chatRoutes.js");
+const { startRecurringTransactionProcessor } = require("./services/recurringTransactionService.js");
 
 
 
@@ -17,13 +18,23 @@ const app = express();
 // Middleware
 app.use(cors({
     origin: process.env.CLIENT_URL || "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
 }));
 app.use(express.json());
 
-connectDB();
+connectDB()
+    .then(() => {
+        startRecurringTransactionProcessor();
+        const PORT = process.env.PORT || 5000;
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.error("Failed to start server:", error);
+    });
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/income", incomeRoutes);
@@ -36,8 +47,3 @@ app.use("/api/v1/ai", chatRoutes);
 
 //Server uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});

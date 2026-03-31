@@ -2,12 +2,12 @@ import React, { useState, useContext }  from 'react'
 import AuthLayout from '../../components/layouts/AuthLayout'
 import { Link, useNavigate } from 'react-router-dom'
 import Input from '../../components/Inputs/Input'
-import { validateEmail } from '../../utils/helper'
 import ProfilePhotoSelector from '../../components/Inputs/ProfilePhotoSelector'
 import axiosInstance from '../../utils/axiosInstance'
 import { API_PATHS } from '../../utils/apiPath'
 import { UserContext } from '../../context/UserContext'
 import uploadImage from '../../utils/uploadImage'
+import { validateEmail, validatePassword } from '../../utils/helper'
 
 const SignUp = () => {
   const [profile, setProfile] = useState(null);
@@ -41,6 +41,11 @@ const SignUp = () => {
       setError('Please enter the password');
       return;
     };
+
+    if (!validatePassword(password)) {
+      setError('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+      return;
+    }
 
     setError("");
 
@@ -108,13 +113,17 @@ const SignUp = () => {
             <Input 
               value={password}
               onChange={({ target }) => setPassword(target.value)}
-              placeholder="Min 8 Characters"
+              placeholder="Min 8 chars, mixed case, number, symbol"
               label="Password"
               type="password"
             />
             </div>
 
           </div>
+
+          <p className="mt-3 text-xs text-slate-600">
+            Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.
+          </p>
           
 
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}

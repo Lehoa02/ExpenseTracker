@@ -3,7 +3,8 @@ const {
     addIncome,
     getAllIncome,
     deleteIncome,
-    downloadIncomeExcel
+    downloadIncomeExcel,
+    stopRecurringIncome,
 } = require("../controllers/incomeController.js");
 const { protect } = require("../middleware/authMiddleware.js");
 
@@ -13,5 +14,6 @@ router.post("/add", protect, addIncome);
 router.get("/get", protect, getAllIncome);
 router.delete("/:id", protect, deleteIncome);
 router.get("/download-excel", protect, downloadIncomeExcel);
+router.patch("/recurring/:templateId/stop", protect, stopRecurringIncome);
 
 module.exports = router;

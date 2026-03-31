@@ -1,8 +1,9 @@
 import React from 'react'
 import { LuArrowRight } from 'react-icons/lu'
 import { IoMdDocument } from 'react-icons/io'
-import moment from 'moment'
+import moment from 'moment-timezone'
 import TransactionInfoCard from '../Cards/TransactionInfoCard'
+import { getUserTimeZone } from '../../utils/helper'
 
 const RecentTransactions = ({ transactions, onSeeMore }) => {
     return (
@@ -21,7 +22,7 @@ const RecentTransactions = ({ transactions, onSeeMore }) => {
                     key={item._id}
                     title={item.type == 'expense' ? item.category : item.source}
                     icon={item.icon}
-                    date={moment.utc(item.date).format("Do MMM, YYYY")}
+                    date={moment.tz(item.date, item.timezone || getUserTimeZone()).format("Do MMM, YYYY")}
                     amount={item.amount}
                     type={item.type}
                     hideDeleteBtn

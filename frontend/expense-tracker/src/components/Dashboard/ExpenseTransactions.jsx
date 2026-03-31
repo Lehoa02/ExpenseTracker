@@ -1,7 +1,8 @@
 import React from 'react';
 import { LuArrowRight } from 'react-icons/lu';
 import TransactionInfoCard from '../Cards/TransactionInfoCard';
-import moment from 'moment';
+import moment from 'moment-timezone';
+import { getUserTimeZone } from '../../utils/helper';
 
 const ExpenseTransactions = ({ transactions, onSeeMore }) => {
     // Filter to show only expenses
@@ -21,7 +22,7 @@ const ExpenseTransactions = ({ transactions, onSeeMore }) => {
                     key={expense._id}
                     title={expense.category}
                     icon={expense.icon}
-                    date={moment.utc(expense.date).format("Do MMM YYYY")}
+                    date={moment.tz(expense.date, expense.timezone || getUserTimeZone()).format("Do MMM YYYY")}
                     amount={expense.amount}
                     type="expense"
                     hideDeleteBtn

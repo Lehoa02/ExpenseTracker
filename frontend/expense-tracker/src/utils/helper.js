@@ -1,8 +1,17 @@
-import moment from "moment";
+import moment from "moment-timezone";
+
+export const getUserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || moment.tz.guess() || "UTC";
+
+export const getMomentInUserTimeZone = (date) => moment.tz(date, getUserTimeZone());
 
 export const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+};
+
+export const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+    return passwordRegex.test(password);
 };
 
 export const getInitials = (name) => {
@@ -45,6 +54,33 @@ export const prepareExpenseBarChartData = (data = []) => {
     return chartData;
 };
 
+export const filterExpensesByOverviewGroup = (data = [], groupBy = "7days") => {
+    const validItems = [...data].filter((item) => item?.date);
+    const timeZone = getUserTimeZone();
+
+    if (groupBy === "7days") {
+        const rangeEnd = moment.tz(timeZone).endOf("day");
+        const rangeStart = rangeEnd.clone().subtract(6, "days").startOf("day");
+
+        return validItems.filter((item) => {
+            const date = moment.tz(item.date, timeZone);
+            return date.isBetween(rangeStart, rangeEnd, "day", "[]");
+        });
+    }
+
+    if (groupBy === "month") {
+        const rangeEnd = moment.tz(timeZone).endOf("day");
+        const rangeStart = rangeEnd.clone().subtract(5, "months").startOf("month");
+
+        return validItems.filter((item) => {
+            const date = moment.tz(item.date, timeZone);
+            return date.isBetween(rangeStart, rangeEnd, "month", "[]");
+        });
+    }
+
+    return validItems;
+};
+
 export const prepareExpenseCategoryChartData = (data = []) => {
     const groupedData = new Map();
 
@@ -67,22 +103,31 @@ export const prepareIncomeBarChartData = (data = [], groupBy = "month") => {
     const validItems = [...data]
         .filter((item) => item?.date)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const timeZone = getUserTimeZone();
 
-        const isThirtyDayView = groupBy === "30days";
-    const rangeEnd = moment.utc().endOf("day");
-        const rangeStart = rangeEnd.clone().subtract(29, "days").startOf("day");
-        const filteredItems = isThirtyDayView
+    const isThirtyDayView = groupBy === "30days";
+    const isMonthView = groupBy === "month";
+    const rangeEnd = moment.tz(timeZone).endOf("day");
+    const rangeStart = rangeEnd.clone().subtract(29, "days").startOf("day");
+    const monthRangeEnd = moment.tz(timeZone).endOf("month");
+    const monthRangeStart = monthRangeEnd.clone().subtract(5, "months").startOf("month");
+    const filteredItems = isThirtyDayView
         ? validItems.filter((item) => {
-            const date = moment.utc(item.date);
+            const date = moment.tz(item.date, timeZone);
             return date.isBetween(rangeStart, rangeEnd, "day", "[]");
         })
+        : isMonthView
+            ? validItems.filter((item) => {
+                const date = moment.tz(item.date, timeZone);
+                return date.isBetween(monthRangeStart, monthRangeEnd, "month", "[]");
+            })
         : validItems;
 
-    const uniqueYears = new Set(filteredItems.map((item) => moment.utc(item.date).format("YYYY")));
+    const uniqueYears = new Set(filteredItems.map((item) => moment.tz(item.date, timeZone).format("YYYY")));
     const useShortMonthLabels = uniqueYears.size <= 1;
 
     filteredItems.forEach((item) => {
-        const date = moment.utc(item.date);
+        const date = moment.tz(item.date, timeZone);
         const bucketKey =
                 groupBy === "30days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")
@@ -141,15 +186,84 @@ export const prepareIncomeCategoryChartData = (data = []) => {
         .sort((a, b) => b.amount - a.amount);
 };
 
+export const prepareProfitBarChartData = (incomeData = [], expenseData = []) => {
+    const timeZone = getUserTimeZone();
+
+    const incomeItems = incomeData
+        .filter((item) => item?.date)
+        .map((item) => ({
+            date: item.date,
+            amount: Number(item?.amount) || 0,
+            type: "income",
+        }));
+
+    const expenseItems = expenseData
+        .filter((item) => item?.date)
+        .map((item) => ({
+            date: item.date,
+            amount: Number(item?.amount) || 0,
+            type: "expense",
+        }));
+
+    const allItems = [...incomeItems, ...expenseItems].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    if (allItems.length === 0) {
+        return [];
+    }
+
+    const monthMoments = allItems.map((item) => moment.tz(item.date, timeZone).startOf("month"));
+    const firstMonth = monthMoments.reduce((earliest, current) => (current.isBefore(earliest) ? current : earliest)).clone();
+    const lastMonth = monthMoments.reduce((latest, current) => (current.isAfter(latest) ? current : latest)).clone();
+    const useYearSuffix = firstMonth.year() !== lastMonth.year();
+
+    const buckets = new Map();
+    const cursor = firstMonth.clone();
+
+    while (cursor.isSameOrBefore(lastMonth, "month")) {
+        const bucketKey = cursor.format("YYYY-MM");
+
+        buckets.set(bucketKey, {
+            bucketKey,
+            month: cursor.format(useYearSuffix ? "MMM YY" : "MMM"),
+            income: 0,
+            expense: 0,
+            profit: 0,
+            total: 0,
+        });
+
+        cursor.add(1, "month");
+    }
+
+    allItems.forEach((item) => {
+        const bucketKey = moment.tz(item.date, timeZone).format("YYYY-MM");
+        const bucket = buckets.get(bucketKey);
+
+        if (!bucket) return;
+
+        if (item.type === "income") {
+            bucket.income += item.amount;
+        } else {
+            bucket.expense += item.amount;
+        }
+
+        bucket.profit = bucket.income - bucket.expense;
+        bucket.total = bucket.profit;
+    });
+
+    return Array.from(buckets.values());
+};
+
 export const filterTransactionsByPeriod = (data = [], groupBy = "day", bucketKey = "") => {
     if (!bucketKey) {
         return data;
     }
 
+    const timeZone = getUserTimeZone();
+
     return data.filter((item) => {
         if (!item?.date) return false;
 
-        const date = moment.utc(item.date);
+        const date = moment.tz(item.date, timeZone);
         const currentKey =
             groupBy === "30days" || groupBy === "7days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")
@@ -166,22 +280,15 @@ export const prepareExpenseLineChartData = (data = [], groupBy = "day") => {
     const validItems = [...data]
         .filter((item) => item?.date)
         .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const timeZone = getUserTimeZone();
 
-    const isSevenDayView = groupBy === "7days";
-    const rangeEnd = moment.utc().endOf("day");
-    const rangeStart = rangeEnd.clone().subtract(6, "days").startOf("day");
-    const filteredItems = isSevenDayView
-        ? validItems.filter((item) => {
-            const date = moment.utc(item.date);
-            return date.isBetween(rangeStart, rangeEnd, "day", "[]");
-        })
-        : validItems;
+    const filteredItems = filterExpensesByOverviewGroup(validItems, groupBy);
 
-    const uniqueYears = new Set(filteredItems.map((item) => moment.utc(item.date).format("YYYY")));
+    const uniqueYears = new Set(filteredItems.map((item) => moment.tz(item.date, timeZone).format("YYYY")));
     const useShortMonthLabels = uniqueYears.size <= 1;
 
     filteredItems.forEach((item) => {
-        const date = moment.utc(item.date);
+        const date = moment.tz(item.date, timeZone);
         const bucketKey =
             groupBy === "7days" || groupBy === "day"
                 ? date.format("YYYY-MM-DD")

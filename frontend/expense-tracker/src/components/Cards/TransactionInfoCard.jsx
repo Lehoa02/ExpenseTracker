@@ -3,7 +3,19 @@ import { LuUtensils, LuTrendingUp, LuTrendingDown, LuTrash2 } from "react-icons/
 import { useTheme } from '../../context/ThemeContext';
 import { addThousandSeparator } from '../../utils/helper';
 
-const TransactionInfoCard = ({ title, icon, date, amount, type, hideDeleteBtn, onDelete }) => {
+const TransactionInfoCard = ({
+    title,
+    icon,
+    date,
+    amount,
+    type,
+    hideDeleteBtn,
+    onDelete,
+    recurringTemplateId,
+    recurrenceStatus,
+    recurrenceFrequency,
+    onStopRecurring,
+}) => {
     const { isDark } = useTheme();
     const rowHoverClass = isDark ? 'hover:bg-slate-700/35' : 'hover:bg-gray-100/60';
 
@@ -33,9 +45,24 @@ const TransactionInfoCard = ({ title, icon, date, amount, type, hideDeleteBtn, o
                 <div>
                     <p className="text-sm text-gray-700 font-medium">{title}</p>
                     <p className="text-xs text-gray-400 mt-1">{date}</p>
+                    {recurringTemplateId && recurrenceStatus !== 'stopped' && recurrenceFrequency && (
+                        <span className="mt-2 inline-flex rounded-full bg-[#875cf5]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#875cf5] dark:bg-[#875cf5]/15 dark:text-[#a78bfa]">
+                            Recurs {recurrenceFrequency}
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {recurringTemplateId && recurrenceStatus !== 'stopped' && onStopRecurring && (
+                        <button
+                            type="button"
+                            className="rounded-full border border-[#875cf5]/25 px-3 py-1.5 text-xs font-medium text-[#875cf5] opacity-0 transition-opacity group-hover:opacity-100 dark:border-[#a78bfa]/30 dark:text-[#c4b5fd]"
+                            onClick={onStopRecurring}
+                        >
+                            Stop sequence
+                        </button>
+                    )}
+
                     {!hideDeleteBtn && (
                         <button className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                         onClick={onDelete}>

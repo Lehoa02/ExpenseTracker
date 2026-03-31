@@ -1,7 +1,12 @@
 const { getFinanceSummary } = require("../services/financeSummaryService.js");
+const { processRecurringTransactions } = require("../services/recurringTransactionService.js");
 
 exports.getDashboardData = async (req, res) => {
     try{
+        await processRecurringTransactions().catch((error) => {
+            console.error('Recurring dashboard backfill failed:', error);
+        });
+
         const summary = await getFinanceSummary(req.user.id);
 
         res.json({
