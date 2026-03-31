@@ -58,6 +58,7 @@ const Home = () => {
           label="Total Balance"
           value={dashboardData?.totalBalance || 0}
           color="bg-primary"
+          isNegative={Number(dashboardData?.totalBalance || 0) < 0}
           />
 
            <InfoCard

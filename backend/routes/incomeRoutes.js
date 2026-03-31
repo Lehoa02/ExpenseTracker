@@ -2,7 +2,9 @@ const express = require('express');
 const {
     addIncome,
     getAllIncome,
+    updateIncome,
     deleteIncome,
+    deleteIncomeBySource,
     downloadIncomeExcel,
     stopRecurringIncome,
 } = require("../controllers/incomeController.js");
@@ -12,7 +14,9 @@ const router = express.Router();
 
 router.post("/add", protect, addIncome);
 router.get("/get", protect, getAllIncome);
+router.put("/:id", protect, updateIncome);
 router.delete("/:id", protect, deleteIncome);
+router.delete("/source/:source", protect, deleteIncomeBySource);
 router.get("/download-excel", protect, downloadIncomeExcel);
 router.patch("/recurring/:templateId/stop", protect, stopRecurringIncome);
 

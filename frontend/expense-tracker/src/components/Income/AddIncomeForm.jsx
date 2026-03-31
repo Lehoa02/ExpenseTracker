@@ -1,18 +1,37 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment-timezone";
 import Input from "../Inputs/Input";
 import EmojiPickerPopup from "../EmojiPickerPopup";
 import { getUserTimeZone } from "../../utils/helper";
 
-const AddIncomeForm = ({ onAddIncome, recentTransactions = [] }) => {
-    const [income, setIncome] = useState({
-        amount: '',
-        source: '',
-        date: '',
-        icon: '',
-        isRecurring: false,
-        frequency: 'monthly',
-    });
+const buildIncomeState = (values = null) => {
+    if (!values) {
+        return {
+            amount: '',
+            source: '',
+            date: '',
+            icon: '',
+            isRecurring: false,
+            frequency: 'monthly',
+        };
+    }
+
+    return {
+        amount: values.amount ?? '',
+        source: values.source ?? values.label ?? '',
+        date: values.date ? moment.tz(values.date, values.timezone || getUserTimeZone()).format('YYYY-MM-DD') : '',
+        icon: values.icon ?? '',
+        isRecurring: values.isRecurring ?? Boolean(values.recurringTemplateId),
+        frequency: values.recurrenceFrequency ?? values.frequency ?? 'monthly',
+    };
+};
+
+const AddIncomeForm = ({ onAddIncome, onSubmit, recentTransactions = [], initialValues = null, submitLabel = 'Add Income' }) => {
+    const [income, setIncome] = useState(() => buildIncomeState(initialValues));
+
+    useEffect(() => {
+        setIncome(buildIncomeState(initialValues));
+    }, [initialValues]);
 
     const recentIncomeTemplates = useMemo(
         () =>
@@ -45,6 +64,15 @@ const AddIncomeForm = ({ onAddIncome, recentTransactions = [] }) => {
             isRecurring: false,
             frequency: 'monthly',
         });
+    };
+
+    const handleSubmit = () => {
+        if (onSubmit) {
+            onSubmit(income);
+            return;
+        }
+
+        onAddIncome?.(income);
     };
 
     return (
@@ -149,6 +177,7 @@ const AddIncomeForm = ({ onAddIncome, recentTransactions = [] }) => {
                         >
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
+                            <option value="biweekly">Biweekly</option>
                             <option value="monthly">Monthly</option>
                             <option value="yearly">Yearly</option>
                         </select>
@@ -160,9 +189,9 @@ const AddIncomeForm = ({ onAddIncome, recentTransactions = [] }) => {
                 <button
                 type="button"
                 className="add-btn add-btn-fill"
-                onClick={() => onAddIncome(income)}
+                onClick={handleSubmit}
                 >
-                    Add Income
+                    {submitLabel}
                 </button>
             </div>
 

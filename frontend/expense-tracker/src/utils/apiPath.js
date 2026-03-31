@@ -16,14 +16,18 @@ export const API_PATHS = {
     INCOME: {
         ADD_INCOME: `/income/add`,
         GET_ALL_INCOME: `/income/get`,
+        UPDATE_INCOME: (id) => `/income/${id}`,
         DELETE_INCOME: (id) => `/income/${id}`,
+        DELETE_INCOME_BY_SOURCE: (source) => `/income/source/${encodeURIComponent(source)}`,
         DOWNLOAD_INCOME: `/income/download-excel`,
         STOP_RECURRING: (templateId) => `/income/recurring/${templateId}/stop`,
     },
     EXPENSE: {
         ADD_EXPENSE: `/expense/add`,
         GET_ALL_EXPENSE: `/expense/get`,
+        UPDATE_EXPENSE: (id) => `/expense/${id}`,
         DELETE_EXPENSE: (id) => `/expense/${id}`,
+        DELETE_EXPENSE_BY_CATEGORY: (category) => `/expense/category/${encodeURIComponent(category)}`,
         DOWNLOAD_EXPENSE: `/expense/download-excel`,
         STOP_RECURRING: (templateId) => `/expense/recurring/${templateId}/stop`,
     },

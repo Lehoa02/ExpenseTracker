@@ -4,7 +4,7 @@ const Income = require("../models/Income.js");
 const Expense = require("../models/Expense.js");
 const RecurringTransaction = require("../models/RecurringTransaction.js");
 
-const VALID_FREQUENCIES = new Set(["daily", "weekly", "monthly", "yearly"]);
+const VALID_FREQUENCIES = new Set(["daily", "weekly","biweekly", "monthly", "yearly"]);
 
 const getOccurrenceMoment = (date, timezone) => {
     const resolvedTimezone = timezone || "UTC";
@@ -37,6 +37,9 @@ const buildNextOccurrence = (date, frequency, timezone) => {
             break;
         case "weekly":
             nextDate.add(7, "days");
+            break;
+        case "biweekly":
+            nextDate.add(14, "days");
             break;
         case "monthly":
             nextDate.add(1, "month");

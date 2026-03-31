@@ -22,22 +22,29 @@ const Income = () => {
     show: false,
     data: null,
   });
+  const [openDeleteSourceAlert, setOpenDeleteSourceAlert] = useState({
+    show: false,
+    source: null,
+  });
+  const [openEditSourceChoice, setOpenEditSourceChoice] = useState({
+    show: false,
+    data: null,
+  });
+  const [openEditIncomeModal, setOpenEditIncomeModal] = useState({
+    show: false,
+    data: null,
+    scope: 'single',
+  });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
   const [incomeFilter, setIncomeFilter] = useState(null);
   const [incomeOverviewGroupBy, setIncomeOverviewGroupBy] = useState('30days');
   const [sourceFilter, setSourceFilter] = useState(null);
+  const [openBulkDeleteAlert, setOpenBulkDeleteAlert] = useState({
+    show: false,
+    items: [],
+  });
 
-  const periodFilteredIncomeData = useMemo(() => {
-    let data = incomeData;
-
-    if (incomeFilter) {
-      data = filterIncomeByPeriod(data, incomeFilter.groupBy, incomeFilter.bucketKey);
-    }
-
-    return data;
-  }, [incomeData, incomeFilter]);
-
-  const incomeSourceChartData = useMemo(() => {
+  const overviewFilteredIncomeData = useMemo(() => {
     let data = incomeData;
     const timeZone = getUserTimeZone();
 
@@ -55,12 +62,28 @@ const Income = () => {
       });
     }
 
+    return data;
+  }, [incomeData, incomeOverviewGroupBy]);
+
+  const periodFilteredIncomeData = useMemo(() => {
+    let data = overviewFilteredIncomeData;
+
     if (incomeFilter) {
       data = filterIncomeByPeriod(data, incomeFilter.groupBy, incomeFilter.bucketKey);
     }
 
     return data;
-  }, [incomeData, incomeFilter, incomeOverviewGroupBy]);
+  }, [overviewFilteredIncomeData, incomeFilter]);
+
+  const incomeSourceChartData = useMemo(() => {
+    let data = overviewFilteredIncomeData;
+
+    if (incomeFilter) {
+      data = filterIncomeByPeriod(data, incomeFilter.groupBy, incomeFilter.bucketKey);
+    }
+
+    return data;
+  }, [overviewFilteredIncomeData, incomeFilter]);
 
   const filteredIncomeData = useMemo(() => {
     let data = periodFilteredIncomeData;
@@ -191,6 +214,144 @@ const Income = () => {
     setSourceFilter((currentSource) => (currentSource === source ? null : source));
   };
 
+  const handleEditIncomeRequest = (income) => {
+    if (income?.recurringTemplateId && income?.recurrenceStatus !== 'stopped') {
+      setOpenEditSourceChoice({ show: true, data: income });
+      return;
+    }
+
+    setOpenEditIncomeModal({ show: true, data: income, scope: 'single' });
+  };
+
+  const handleOpenIncomeEdit = (scope) => {
+    if (!openEditSourceChoice.data) {
+      return;
+    }
+
+    setOpenEditSourceChoice({ show: false, data: null });
+    setOpenEditIncomeModal({ show: true, data: openEditSourceChoice.data, scope });
+  };
+
+  const handleSaveIncomeEdit = async (income) => {
+    if (!openEditIncomeModal.data?._id) {
+      return;
+    }
+
+    const { scope, data } = openEditIncomeModal;
+
+    try {
+      const timeZone = getUserTimeZone();
+
+      await axiosInstance.put(API_PATHS.INCOME.UPDATE_INCOME(data._id), {
+        amount: income.amount,
+        source: income.source,
+        date: income.date,
+        icon: income.icon,
+        isRecurring: income.isRecurring,
+        frequency: income.frequency,
+        timezone: timeZone,
+        scope,
+        templateId: data.recurringTemplateId,
+      });
+
+      setOpenEditIncomeModal({ show: false, data: null, scope: 'single' });
+      toast.success(scope === 'sequence' ? 'Income sequence updated successfully' : 'Income updated successfully');
+      fetchIncomeDetails();
+    } catch (error) {
+      console.log('Error updating income:', error.response?.data?.message || error.message);
+      toast.error('Unable to update income');
+    }
+  };
+
+  const handleDeleteIncomeSourceRequest = (source) => {
+    setOpenDeleteSourceAlert({ show: true, source });
+  };
+
+  const confirmDeleteIncomeSource = async () => {
+    if (!openDeleteSourceAlert.source) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(API_PATHS.INCOME.DELETE_INCOME_BY_SOURCE(openDeleteSourceAlert.source));
+
+      toast.success('Income source deleted successfully');
+      setIncomeFilter(null);
+      setSourceFilter((currentSource) => (currentSource === openDeleteSourceAlert.source ? null : currentSource));
+      setOpenDeleteSourceAlert({ show: false, source: null });
+      fetchIncomeDetails();
+    } catch (error) {
+      console.log('Error deleting income source:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete income source');
+    }
+  };
+
+  const handleDeleteIncomeRequest = (income) => {
+    setOpenDeleteAlert({ show: true, data: income });
+  };
+
+  const confirmDeleteIncome = async () => {
+    if (!openDeleteAlert.data?._id) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(API_PATHS.INCOME.DELETE_INCOME(openDeleteAlert.data._id));
+
+      setOpenDeleteAlert({ show: false, data: null });
+      toast.success('Income deleted successfully');
+      fetchIncomeDetails();
+    } catch (error) {
+      console.log('Error deleting income:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete income');
+    }
+  };
+
+  const handleStopRecurringIncomeRequest = async () => {
+    if (!openDeleteAlert.data?.recurringTemplateId) {
+      return;
+    }
+
+    await handleStopRecurringIncome(openDeleteAlert.data.recurringTemplateId);
+    setOpenDeleteAlert({ show: false, data: null });
+  };
+
+  const handleBulkDeleteIncomeRequest = (items = []) => {
+    setOpenBulkDeleteAlert({ show: true, items });
+  };
+
+  const confirmBulkDeleteIncome = async (stopSequences = false) => {
+    const items = openBulkDeleteAlert.items || [];
+
+    if (!items.length) {
+      return;
+    }
+
+    try {
+      if (stopSequences) {
+        const recurringTemplateIds = [
+          ...new Set(
+            items
+              .filter((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+              .map((item) => item.recurringTemplateId)
+          ),
+        ];
+
+        await Promise.all(
+          recurringTemplateIds.map((templateId) => axiosInstance.patch(API_PATHS.INCOME.STOP_RECURRING(templateId)))
+        );
+      }
+
+      await Promise.all(items.map((item) => axiosInstance.delete(API_PATHS.INCOME.DELETE_INCOME(item._id))));
+      toast.success(stopSequences ? 'Selected income items deleted and sequences stopped' : 'Selected income items deleted successfully');
+      setOpenBulkDeleteAlert({ show: false, items: [] });
+      fetchIncomeDetails();
+    } catch (error) {
+      console.log('Error deleting income items:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete selected income items');
+    }
+  };
+
   const clearSourceFilter = () => {
     setSourceFilter(null);
   };
@@ -246,12 +407,15 @@ const Income = () => {
               selectedSource={sourceFilter}
               onSourceSelect={handleSourceSelect}
               onClearSource={clearSourceFilter}
+              onDeleteSource={handleDeleteIncomeSourceRequest}
             />
           </div>
 
           <IncomeList 
             transactions={filteredIncomeData}
-            onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
+            onDelete={handleDeleteIncomeRequest}
+            onEdit={handleEditIncomeRequest}
+            onBulkDeleteRequest={handleBulkDeleteIncomeRequest}
             onDownload={handleDownloadIncomeDetails}
             filterLabel={incomeFilter?.label}
             sourceLabel={sourceFilter}
@@ -271,15 +435,84 @@ const Income = () => {
             />
           </Modal>
 
+          <Modal
+            isOpen={openEditSourceChoice.show}
+            onClose={() => setOpenEditSourceChoice({ show: false, data: null })}
+            title="Edit Recurring Income"
+          >
+            <DeleteAlert
+              content="This income belongs to a recurring sequence. Do you want to update only this item or the whole sequence?"
+              primaryLabel="Only this item"
+              secondaryLabel="Whole sequence"
+              secondaryButtonLabel="Whole sequence"
+              onDelete={() => handleOpenIncomeEdit('single')}
+              onSecondaryAction={() => handleOpenIncomeEdit('sequence')}
+            />
+          </Modal>
+
+          <Modal
+            isOpen={openEditIncomeModal.show}
+            onClose={() => setOpenEditIncomeModal({ show: false, data: null, scope: 'single' })}
+            title={openEditIncomeModal.scope === 'sequence' ? 'Edit Income Sequence' : 'Edit Income'}
+          >
+            <AddIncomeForm
+              initialValues={openEditIncomeModal.data}
+              submitLabel={openEditIncomeModal.scope === 'sequence' ? 'Update sequence' : 'Update income'}
+              onSubmit={handleSaveIncomeEdit}
+              recentTransactions={recentIncomeTransactions}
+            />
+          </Modal>
+
           <Modal 
           isOpen={openDeleteAlert.show}
           onClose={() => setOpenDeleteAlert({ show: false, data: null })}
-          title="Delete Income"
+          title={openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped' ? 'Recurring Income' : 'Delete Income'}
           >
             <DeleteAlert 
-            content = "Are you sure you want to delete this income?"
-            onDelete={() => handleDeleteIncome(openDeleteAlert.data)}
-             />
+              content={
+                openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped'
+                  ? 'This income is part of a recurring sequence. Do you want to delete only this item or stop the whole sequence?'
+                  : 'Are you sure you want to delete this income?'
+              }
+              primaryLabel="Delete item"
+              secondaryLabel={openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped' ? 'Stop sequence' : undefined}
+              onDelete={confirmDeleteIncome}
+              onSecondaryAction={handleStopRecurringIncomeRequest}
+            />
+          </Modal>
+
+          <Modal
+            isOpen={openDeleteSourceAlert.show}
+            onClose={() => setOpenDeleteSourceAlert({ show: false, source: null })}
+            title="Delete Income Source"
+          >
+            <DeleteAlert
+              content={`Are you sure you want to delete all income entries for ${openDeleteSourceAlert.source || 'this source'}?`}
+              primaryLabel="Delete source"
+              onDelete={confirmDeleteIncomeSource}
+            />
+          </Modal>
+
+          <Modal
+            isOpen={openBulkDeleteAlert.show}
+            onClose={() => setOpenBulkDeleteAlert({ show: false, items: [] })}
+            title="Delete Selected Income Items"
+          >
+            <DeleteAlert
+              content={
+                openBulkDeleteAlert.items.some((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+                  ? 'Some selected income items are part of recurring sequences. Do you want to delete only the selected items or stop the sequence(s) too?'
+                  : `Are you sure you want to delete ${openBulkDeleteAlert.items.length} selected income item(s)?`
+              }
+              primaryLabel="Delete items"
+              secondaryLabel={
+                openBulkDeleteAlert.items.some((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+                  ? 'Stop sequence(s)'
+                  : undefined
+              }
+              onDelete={() => confirmBulkDeleteIncome(false)}
+              onSecondaryAction={() => confirmBulkDeleteIncome(true)}
+            />
           </Modal>
         </div>
 

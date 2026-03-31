@@ -14,7 +14,7 @@ const RecurringTransactionSchema = new mongoose.Schema(
         timezone: { type: String, default: null },
         frequency: {
             type: String,
-            enum: ["daily", "weekly", "monthly", "yearly"],
+            enum: ["daily", "weekly", "biweekly", "monthly", "yearly"],
             required: true,
         },
         startDate: { type: Date, required: true },

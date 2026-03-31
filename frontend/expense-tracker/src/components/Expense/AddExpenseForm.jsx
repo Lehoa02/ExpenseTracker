@@ -1,18 +1,37 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import moment from "moment-timezone";
 import Input from "../Inputs/Input";
 import EmojiPickerPopup from "../EmojiPickerPopup";
 import { getUserTimeZone } from "../../utils/helper";
 
-const AddExpenseForm = ({ onAddExpense, recentTransactions = [] }) => {
-    const [expense, setExpense] = useState({
-        amount: '',
-        category: '',
-        date: '',
-        icon: '',
-        isRecurring: false,
-        frequency: 'monthly',
-    });
+const buildExpenseState = (values = null) => {
+    if (!values) {
+        return {
+            amount: '',
+            category: '',
+            date: '',
+            icon: '',
+            isRecurring: false,
+            frequency: 'monthly',
+        };
+    }
+
+    return {
+        amount: values.amount ?? '',
+        category: values.category ?? values.label ?? '',
+        date: values.date ? moment.tz(values.date, values.timezone || getUserTimeZone()).format('YYYY-MM-DD') : '',
+        icon: values.icon ?? '',
+        isRecurring: values.isRecurring ?? Boolean(values.recurringTemplateId),
+        frequency: values.recurrenceFrequency ?? values.frequency ?? 'monthly',
+    };
+};
+
+const AddExpenseForm = ({ onAddExpense, onSubmit, recentTransactions = [], initialValues = null, submitLabel = 'Add Expense' }) => {
+    const [expense, setExpense] = useState(() => buildExpenseState(initialValues));
+
+    useEffect(() => {
+        setExpense(buildExpenseState(initialValues));
+    }, [initialValues]);
 
     const recentExpenseTemplates = useMemo(
         () =>
@@ -45,6 +64,15 @@ const AddExpenseForm = ({ onAddExpense, recentTransactions = [] }) => {
             isRecurring: false,
             frequency: 'monthly',
         });
+    };
+
+    const handleSubmit = () => {
+        if (onSubmit) {
+            onSubmit(expense);
+            return;
+        }
+
+        onAddExpense?.(expense);
     };
     
 
@@ -145,6 +173,7 @@ const AddExpenseForm = ({ onAddExpense, recentTransactions = [] }) => {
                         >
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
+                            <option value="biweekly">Biweekly</option>
                             <option value="monthly">Monthly</option>
                             <option value="yearly">Yearly</option>
                         </select>
@@ -153,8 +182,8 @@ const AddExpenseForm = ({ onAddExpense, recentTransactions = [] }) => {
             </div>
 
             <div className="flex justify-end mt-6">
-                <button type="button" className="add-btn add-btn-fill" onClick={() => onAddExpense(expense)}>
-                    Add Expense
+                <button type="button" className="add-btn add-btn-fill" onClick={handleSubmit}>
+                    {submitLabel}
                 </button>
             </div>
         </div>

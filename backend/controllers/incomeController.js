@@ -1,6 +1,9 @@
 const xlsx = require('xlsx');
 const Income = require('../models/Income.js');
-const { createRecurringTemplate, processRecurringTransactions, stopRecurringTemplate, normalizeToUserDay } = require('../services/recurringTransactionService.js');
+const RecurringTransaction = require('../models/RecurringTransaction.js');
+const { createRecurringTemplate, processRecurringTransactions, stopRecurringTemplate, normalizeToUserDay, buildNextOccurrence } = require('../services/recurringTransactionService.js');
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 
 
@@ -67,6 +70,128 @@ exports.addIncome = async (req, res) => {
     }
 };
 
+//Update Income Source
+exports.updateIncome = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const {
+            icon,
+            source,
+            amount,
+            date,
+            timezone,
+            isRecurring = false,
+            frequency,
+            scope = 'single',
+            templateId,
+        } = req.body;
+
+        const parsedAmount = Number(amount);
+        const recurringEnabled = isRecurring === true || isRecurring === 'true';
+        const resolvedTimezone = timezone || 'UTC';
+
+        if (!source || !amount || !date) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ message: 'Amount should be a valid number greater than 0' });
+        }
+
+        if (recurringEnabled && !frequency) {
+            return res.status(400).json({ message: 'Recurring frequency is required' });
+        }
+
+        const normalizedDate = normalizeToUserDay(date, resolvedTimezone);
+        const shouldUpdateSequence = scope === 'sequence' && templateId;
+        const recurringTemplate = shouldUpdateSequence
+            ? await RecurringTransaction.findOne({ _id: templateId, userId, transactionType: 'income' })
+            : null;
+
+        if (shouldUpdateSequence && !recurringTemplate) {
+            return res.status(404).json({ message: 'Recurring income sequence not found' });
+        }
+
+        const nextOccurrence = shouldUpdateSequence && recurringEnabled
+            ? buildNextOccurrence(normalizedDate, frequency, resolvedTimezone)
+            : null;
+
+        if (shouldUpdateSequence && recurringEnabled && !nextOccurrence) {
+            return res.status(400).json({ message: 'Unable to calculate next recurring occurrence' });
+        }
+
+        const updatePayload = {
+            icon,
+            source,
+            amount: parsedAmount,
+            date: normalizedDate,
+            timezone: resolvedTimezone,
+            isRecurring: recurringEnabled,
+            recurrenceFrequency: recurringEnabled ? frequency : null,
+            recurrenceStatus: recurringEnabled ? 'active' : 'none',
+            recurringTemplateId: recurringEnabled ? templateId || null : shouldUpdateSequence ? templateId : null,
+        };
+
+        if (shouldUpdateSequence && !recurringEnabled) {
+            updatePayload.recurrenceStatus = 'stopped';
+            updatePayload.recurrenceFrequency = null;
+            updatePayload.recurringTemplateId = templateId;
+        }
+
+        const updatedIncome = await Income.findOneAndUpdate(
+            { _id: req.params.id, userId },
+            updatePayload,
+            { new: true }
+        );
+
+        if (!updatedIncome) {
+            return res.status(404).json({ message: 'Income not found' });
+        }
+
+        if (shouldUpdateSequence) {
+            if (!recurringEnabled) {
+                await stopRecurringTemplate({
+                    templateId,
+                    userId,
+                    transactionType: 'income',
+                });
+            } else {
+                recurringTemplate.label = source;
+                recurringTemplate.amount = parsedAmount;
+                recurringTemplate.icon = icon;
+                recurringTemplate.timezone = resolvedTimezone;
+                recurringTemplate.frequency = frequency;
+                recurringTemplate.startDate = normalizedDate;
+                recurringTemplate.nextOccurrence = nextOccurrence;
+                recurringTemplate.isActive = true;
+                recurringTemplate.stoppedAt = null;
+                await recurringTemplate.save();
+
+                await Income.updateMany(
+                    { userId, recurringTemplateId: recurringTemplate._id },
+                    {
+                        $set: {
+                            source,
+                            amount: parsedAmount,
+                            icon,
+                            timezone: resolvedTimezone,
+                            isRecurring: true,
+                            recurrenceFrequency: frequency,
+                            recurrenceStatus: 'active',
+                            recurringTemplateId: recurringTemplate._id,
+                        },
+                    }
+                );
+            }
+        }
+
+        res.status(200).json(updatedIncome);
+    } catch (error) {
+        res.status(500).json({ message: error.message || 'Server Error' });
+    }
+};
+
 //Get All Income Sources
 exports.getAllIncome = async (req, res) => {
     const userId = req.user.id;
@@ -90,6 +215,28 @@ exports.deleteIncome = async (req, res) => {
         res.json({ message: 'Income deleted successfully' });
     } catch(error) {
         res.status(500).json({message: "Server Error"})
+    }
+};
+
+exports.deleteIncomeBySource = async (req, res) => {
+    try {
+        const source = decodeURIComponent(req.params.source || '').trim();
+
+        if (!source) {
+            return res.status(400).json({ message: 'Source is required' });
+        }
+
+        const result = await Income.deleteMany({
+            userId: req.user.id,
+            source: new RegExp(`^${escapeRegExp(source)}$`, 'i'),
+        });
+
+        res.json({
+            message: 'Income sources deleted successfully',
+            deletedCount: result.deletedCount || 0,
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
     }
 };
 

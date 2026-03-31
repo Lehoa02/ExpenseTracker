@@ -23,10 +23,27 @@ const Expense = () => {
       show: false,
       data: null,
     });
+      const [openDeleteCategoryAlert, setOpenDeleteCategoryAlert] = useState({
+        show: false,
+        category: null,
+      });
+    const [openEditCategoryChoice, setOpenEditCategoryChoice] = useState({
+      show: false,
+      data: null,
+    });
+    const [openEditExpenseModal, setOpenEditExpenseModal] = useState({
+      show: false,
+      data: null,
+      scope: 'single',
+    });
     const [openAddExpenseModal, setOpenAddExpenseModal] = useState(false);
     const [expenseFilter, setExpenseFilter] = useState(null);
     const [expenseOverviewGroupBy, setExpenseOverviewGroupBy] = useState('7days');
     const [categoryFilter, setCategoryFilter] = useState(null);
+    const [openBulkDeleteAlert, setOpenBulkDeleteAlert] = useState({
+      show: false,
+      items: [],
+    });
 
     const recentExpenseTransactions = useMemo(
       () =>
@@ -183,6 +200,144 @@ const Expense = () => {
     setCategoryFilter((currentCategory) => (currentCategory === category ? null : category));
   };
 
+  const handleEditExpenseRequest = (expense) => {
+    if (expense?.recurringTemplateId && expense?.recurrenceStatus !== 'stopped') {
+      setOpenEditCategoryChoice({ show: true, data: expense });
+      return;
+    }
+
+    setOpenEditExpenseModal({ show: true, data: expense, scope: 'single' });
+  };
+
+  const handleOpenExpenseEdit = (scope) => {
+    if (!openEditCategoryChoice.data) {
+      return;
+    }
+
+    setOpenEditCategoryChoice({ show: false, data: null });
+    setOpenEditExpenseModal({ show: true, data: openEditCategoryChoice.data, scope });
+  };
+
+  const handleSaveExpenseEdit = async (expense) => {
+    if (!openEditExpenseModal.data?._id) {
+      return;
+    }
+
+    const { scope, data } = openEditExpenseModal;
+
+    try {
+      const timeZone = getUserTimeZone();
+
+      await axiosInstance.put(API_PATHS.EXPENSE.UPDATE_EXPENSE(data._id), {
+        amount: expense.amount,
+        category: expense.category,
+        date: expense.date,
+        icon: expense.icon,
+        isRecurring: expense.isRecurring,
+        frequency: expense.frequency,
+        timezone: timeZone,
+        scope,
+        templateId: data.recurringTemplateId,
+      });
+
+      setOpenEditExpenseModal({ show: false, data: null, scope: 'single' });
+      toast.success(scope === 'sequence' ? 'Expense sequence updated successfully' : 'Expense updated successfully');
+      fetchExpenseDetails();
+    } catch (error) {
+      console.log('Error updating expense:', error.response?.data?.message || error.message);
+      toast.error('Unable to update expense');
+    }
+  };
+
+  const handleDeleteExpenseCategoryRequest = (category) => {
+    setOpenDeleteCategoryAlert({ show: true, category });
+  };
+
+  const confirmDeleteExpenseCategory = async () => {
+    if (!openDeleteCategoryAlert.category) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(API_PATHS.EXPENSE.DELETE_EXPENSE_BY_CATEGORY(openDeleteCategoryAlert.category));
+
+      toast.success('Expense category deleted successfully');
+      setExpenseFilter(null);
+      setCategoryFilter((currentCategory) => (currentCategory === openDeleteCategoryAlert.category ? null : currentCategory));
+      setOpenDeleteCategoryAlert({ show: false, category: null });
+      fetchExpenseDetails();
+    } catch (error) {
+      console.log('Error deleting expense category:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete expense category');
+    }
+  };
+
+  const handleDeleteExpenseRequest = (expense) => {
+    setOpenDeleteAlert({ show: true, data: expense });
+  };
+
+  const confirmDeleteExpense = async () => {
+    if (!openDeleteAlert.data?._id) {
+      return;
+    }
+
+    try {
+      await axiosInstance.delete(API_PATHS.EXPENSE.DELETE_EXPENSE(openDeleteAlert.data._id));
+
+      setOpenDeleteAlert({ show: false, data: null });
+      toast.success('Expense deleted successfully');
+      fetchExpenseDetails();
+    } catch (error) {
+      console.log('Error deleting expense:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete expense');
+    }
+  };
+
+  const handleStopRecurringExpenseRequest = async () => {
+    if (!openDeleteAlert.data?.recurringTemplateId) {
+      return;
+    }
+
+    await handleStopRecurringExpense(openDeleteAlert.data.recurringTemplateId);
+    setOpenDeleteAlert({ show: false, data: null });
+  };
+
+  const handleBulkDeleteExpenseRequest = (items = []) => {
+    setOpenBulkDeleteAlert({ show: true, items });
+  };
+
+  const confirmBulkDeleteExpense = async (stopSequences = false) => {
+    const items = openBulkDeleteAlert.items || [];
+
+    if (!items.length) {
+      return;
+    }
+
+    try {
+      if (stopSequences) {
+        const recurringTemplateIds = [
+          ...new Set(
+            items
+              .filter((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+              .map((item) => item.recurringTemplateId)
+          ),
+        ];
+
+        await Promise.all(
+          recurringTemplateIds.map((templateId) => axiosInstance.patch(API_PATHS.EXPENSE.STOP_RECURRING(templateId)))
+        );
+      }
+
+      await Promise.all(items.map((item) => axiosInstance.delete(API_PATHS.EXPENSE.DELETE_EXPENSE(item._id))));
+      toast.success(stopSequences ? 'Selected expense items deleted and sequences stopped' : 'Selected expense items deleted successfully');
+      setOpenBulkDeleteAlert({ show: false, items: [] });
+      fetchExpenseDetails();
+    } catch (error) {
+      console.log('Error deleting expense items:', error.response?.data?.message || error.message);
+      toast.error('Unable to delete selected expense items');
+    }
+  };
+
   const clearCategoryFilter = () => {
     setCategoryFilter(null);
   };
@@ -233,11 +388,14 @@ const Expense = () => {
                 selectedCategory={categoryFilter}
                 onCategorySelect={handleCategorySelect}
                 onClearCategory={clearCategoryFilter}
+                onDeleteCategory={handleDeleteExpenseCategoryRequest}
               />
           </div>
           <ExpenseList 
             transactions={filteredExpenseData}
-            onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
+            onDelete={handleDeleteExpenseRequest}
+            onEdit={handleEditExpenseRequest}
+            onBulkDeleteRequest={handleBulkDeleteExpenseRequest}
             onDownload={handleDownloadExpenseDetails}
             filterLabel={expenseFilter?.label}
             categoryLabel={categoryFilter}
@@ -254,15 +412,84 @@ const Expense = () => {
             <AddExpenseForm onAddExpense={handleAddExpense} recentTransactions={recentExpenseTransactions.slice(0, 5)} />
       </Model>
 
-      <Model 
-          isOpen={openDeleteAlert.show}
-          onClose={() => setOpenDeleteAlert({ show: false, data: null })}
-          title="Delete Expense"
+          <Model
+            isOpen={openEditCategoryChoice.show}
+            onClose={() => setOpenEditCategoryChoice({ show: false, data: null })}
+            title="Edit Recurring Expense"
           >
-            <DeleteAlert 
-            content = "Are you sure you want to delete this expense?"
-            onDelete={() => handleDeleteExpense(openDeleteAlert.data)}
-             />
+            <DeleteAlert
+              content="This expense belongs to a recurring sequence. Do you want to update only this item or the whole sequence?"
+              primaryLabel="Only this item"
+              secondaryLabel="Whole sequence"
+              secondaryButtonLabel="Whole sequence"
+              onDelete={() => handleOpenExpenseEdit('single')}
+              onSecondaryAction={() => handleOpenExpenseEdit('sequence')}
+            />
+          </Model>
+
+          <Model
+            isOpen={openEditExpenseModal.show}
+            onClose={() => setOpenEditExpenseModal({ show: false, data: null, scope: 'single' })}
+            title={openEditExpenseModal.scope === 'sequence' ? 'Edit Expense Sequence' : 'Edit Expense'}
+          >
+            <AddExpenseForm
+              initialValues={openEditExpenseModal.data}
+              submitLabel={openEditExpenseModal.scope === 'sequence' ? 'Update sequence' : 'Update expense'}
+              onSubmit={handleSaveExpenseEdit}
+              recentTransactions={recentExpenseTransactions.slice(0, 5)}
+            />
+          </Model>
+
+          <Model
+            isOpen={openDeleteAlert.show}
+            onClose={() => setOpenDeleteAlert({ show: false, data: null })}
+            title={openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped' ? 'Recurring Expense' : 'Delete Expense'}
+          >
+            <DeleteAlert
+              content={
+                openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped'
+                  ? 'This expense is part of a recurring sequence. Do you want to delete only this item or stop the whole sequence?'
+                  : 'Are you sure you want to delete this expense?'
+              }
+              primaryLabel="Delete item"
+              secondaryLabel={openDeleteAlert.data?.recurringTemplateId && openDeleteAlert.data?.recurrenceStatus !== 'stopped' ? 'Stop sequence' : undefined}
+              onDelete={confirmDeleteExpense}
+              onSecondaryAction={handleStopRecurringExpenseRequest}
+            />
+          </Model>
+
+          <Model
+            isOpen={openDeleteCategoryAlert.show}
+            onClose={() => setOpenDeleteCategoryAlert({ show: false, category: null })}
+            title="Delete Expense Category"
+          >
+            <DeleteAlert
+              content={`Are you sure you want to delete all expense entries for ${openDeleteCategoryAlert.category || 'this category'}?`}
+              primaryLabel="Delete category"
+              onDelete={confirmDeleteExpenseCategory}
+            />
+          </Model>
+
+          <Model
+            isOpen={openBulkDeleteAlert.show}
+            onClose={() => setOpenBulkDeleteAlert({ show: false, items: [] })}
+            title="Delete Selected Expense Items"
+          >
+            <DeleteAlert
+              content={
+                openBulkDeleteAlert.items.some((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+                  ? 'Some selected expense items are part of recurring sequences. Do you want to delete only the selected items or stop the sequence(s) too?'
+                  : `Are you sure you want to delete ${openBulkDeleteAlert.items.length} selected expense item(s)?`
+              }
+              primaryLabel="Delete items"
+              secondaryLabel={
+                openBulkDeleteAlert.items.some((item) => item?.recurringTemplateId && item?.recurrenceStatus !== 'stopped')
+                  ? 'Stop sequence(s)'
+                  : undefined
+              }
+              onDelete={() => confirmBulkDeleteExpense(false)}
+              onSecondaryAction={() => confirmBulkDeleteExpense(true)}
+            />
           </Model>
       </div>
       </DashboardLayout>

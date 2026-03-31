@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react';
+import { LuTrash2 } from 'react-icons/lu';
 import { addThousandSeparator, prepareIncomeCategoryChartData } from '../../utils/helper';
 
-const IncomeSourceChart = ({ transactions, selectedSource, onSourceSelect, onClearSource }) => {
+const IncomeSourceChart = ({
+    transactions,
+    selectedSource,
+    onSourceSelect,
+    onClearSource,
+    onDeleteSource,
+}) => {
     const categoryData = useMemo(() => prepareIncomeCategoryChartData(transactions), [transactions]);
 
     const totalAmount = useMemo(
@@ -31,18 +38,21 @@ const IncomeSourceChart = ({ transactions, selectedSource, onSourceSelect, onCle
                         {categoryData.map((item) => {
                             const percent = totalAmount > 0 ? Math.round((item.amount / totalAmount) * 100) : 0;
                             const percentLabel = item.amount > 0 && percent === 0 ? '<1' : percent;
-                            const shareLabel =
-                                categoryData.length === 1
-                                    ? '100% of your current selection'
-                                    : `${percentLabel}% of total income`;
                             const isActive = selectedSource === item.name;
 
                             return (
-                                <button
+                                <div
                                     key={item.name}
-                                    type="button"
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => onSourceSelect?.(item.name)}
-                                    className={`w-full cursor-pointer rounded-2xl border px-4 py-3 text-left transition-all ${
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            onSourceSelect?.(item.name);
+                                        }
+                                    }}
+                                    className={`group w-full cursor-pointer rounded-2xl border px-4 py-3 text-left transition-all ${
                                         isActive
                                             ? 'border-[#875cf5] bg-[#875cf5]/10 shadow-sm dark:border-[#a78bfa] dark:bg-[#875cf5]/15'
                                             : 'border-gray-200 bg-white hover:border-[#875cf5]/40 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:bg-slate-900'
@@ -54,11 +64,27 @@ const IncomeSourceChart = ({ transactions, selectedSource, onSourceSelect, onCle
                                                 {item.name}
                                             </div>
                                             <div className="mt-1 text-xs text-gray-500 dark:text-slate-400">
-                                                {shareLabel}
+                                                {percentLabel}% of total income
                                             </div>
                                         </div>
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-                                            ${addThousandSeparator(item.amount)}
+
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onDeleteSource?.(item.name);
+                                                }}
+                                                className="opacity-0 transition-opacity group-hover:opacity-100 text-gray-400 hover:text-red-500"
+                                                title={`Delete ${item.name}`}
+                                                aria-label={`Delete ${item.name}`}
+                                            >
+                                                <LuTrash2 className="text-base" />
+                                            </button>
+
+                                            <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                                                ${addThousandSeparator(item.amount)}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -68,7 +94,7 @@ const IncomeSourceChart = ({ transactions, selectedSource, onSourceSelect, onCle
                                             style={{ width: `${Math.max(percent, 4)}%` }}
                                         />
                                     </div>
-                                </button>
+                                </div>
                             );
                         })}
                     </div>

@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react';
+import { LuTrash2 } from 'react-icons/lu';
 import { addThousandSeparator, prepareExpenseCategoryChartData } from '../../utils/helper';
 
-const ExpenseCategoryChart = ({ transactions, selectedCategory, onCategorySelect, onClearCategory }) => {
+const ExpenseCategoryChart = ({
+    transactions,
+    selectedCategory,
+    onCategorySelect,
+    onClearCategory,
+    onDeleteCategory,
+}) => {
     const categoryData = useMemo(() => prepareExpenseCategoryChartData(transactions), [transactions]);
 
     const totalAmount = useMemo(
@@ -34,11 +41,18 @@ const ExpenseCategoryChart = ({ transactions, selectedCategory, onCategorySelect
                             const isActive = selectedCategory === item.name;
 
                             return (
-                                <button
+                                <div
                                     key={item.name}
-                                    type="button"
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => onCategorySelect?.(item.name)}
-                                    className={`w-full cursor-pointer rounded-2xl border px-4 py-3 text-left transition-all ${
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            onCategorySelect?.(item.name);
+                                        }
+                                    }}
+                                    className={`group w-full cursor-pointer rounded-2xl border px-4 py-3 text-left transition-all ${
                                         isActive
                                             ? 'border-[#875cf5] bg-[#875cf5]/10 shadow-sm dark:border-[#a78bfa] dark:bg-[#875cf5]/15'
                                             : 'border-gray-200 bg-white hover:border-[#875cf5]/40 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:bg-slate-900'
@@ -53,8 +67,24 @@ const ExpenseCategoryChart = ({ transactions, selectedCategory, onCategorySelect
                                                 {percentLabel}% of total expense
                                             </div>
                                         </div>
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-                                            ${addThousandSeparator(item.amount)}
+
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    onDeleteCategory?.(item.name);
+                                                }}
+                                                className="opacity-0 transition-opacity group-hover:opacity-100 text-gray-400 hover:text-red-500"
+                                                title={`Delete ${item.name}`}
+                                                aria-label={`Delete ${item.name}`}
+                                            >
+                                                <LuTrash2 className="text-base" />
+                                            </button>
+
+                                            <div className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                                                ${addThousandSeparator(item.amount)}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -64,7 +94,7 @@ const ExpenseCategoryChart = ({ transactions, selectedCategory, onCategorySelect
                                             style={{ width: `${Math.max(percent, 4)}%` }}
                                         />
                                     </div>
-                                </button>
+                                </div>
                             );
                         })}
                     </div>

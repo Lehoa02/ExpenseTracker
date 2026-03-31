@@ -1,5 +1,5 @@
-import React from "react";
-import { LuDownload, LuX } from "react-icons/lu";
+import React, { useEffect, useMemo, useState } from "react";
+import { LuDownload, LuTrash2, LuX } from "react-icons/lu";
 import moment from "moment-timezone";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
 import { getUserTimeZone } from "../../utils/helper";
@@ -7,12 +7,34 @@ import { getUserTimeZone } from "../../utils/helper";
 const IncomeList = ({
     transactions,
     onDelete,
+    onEdit,
+    onBulkDeleteRequest,
     onDownload,
     filterLabel,
     sourceLabel,
     onClearFilters,
     onStopRecurring,
 }) => {
+    const [selectedIds, setSelectedIds] = useState([]);
+    const visibleIds = useMemo(() => (transactions || []).map((income) => income._id), [transactions]);
+
+    useEffect(() => {
+        setSelectedIds((currentIds) => currentIds.filter((id) => visibleIds.includes(id)));
+    }, [visibleIds]);
+
+    const toggleSelected = (id) => {
+        setSelectedIds((currentIds) =>
+            currentIds.includes(id) ? currentIds.filter((item) => item !== id) : [...currentIds, id]
+        );
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (!onBulkDeleteRequest || selectedIds.length === 0) return;
+
+        const selectedItems = (transactions || []).filter((income) => selectedIds.includes(income._id));
+        onBulkDeleteRequest(selectedItems);
+    };
+
     return (
         <div className="card">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -33,6 +55,18 @@ const IncomeList = ({
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {selectedIds.length > 0 && onBulkDeleteRequest && (
+                        <button
+                            type="button"
+                            className="card-btn px-3 text-red-600 hover:text-red-700"
+                            onClick={handleBulkDeleteClick}
+                            title={`Delete selected (${selectedIds.length})`}
+                            aria-label={`Delete selected (${selectedIds.length})`}
+                        >
+                            <LuTrash2 className="text-base" />
+                        </button>
+                    )}
+
                     {(filterLabel || sourceLabel) && onClearFilters && (
                         <button
                             type="button"
@@ -61,7 +95,10 @@ const IncomeList = ({
                         date={moment.tz(income.date, income.timezone || getUserTimeZone()).format("Do MMM, YYYY")}
                         amount={income.amount}
                         type="income"
-                        onDelete={() => onDelete(income._id)}
+                        isSelected={selectedIds.includes(income._id)}
+                        onSelect={() => toggleSelected(income._id)}
+                        onDelete={() => onDelete(income)}
+                        onEdit={() => onEdit?.(income)}
                         recurringTemplateId={income.recurringTemplateId}
                         recurrenceStatus={income.recurrenceStatus}
                         recurrenceFrequency={income.recurrenceFrequency}
