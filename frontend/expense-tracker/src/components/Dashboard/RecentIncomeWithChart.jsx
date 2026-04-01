@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import CustomPieChart from "../Charts/CustomPieChart";
+import { prepareIncomeCategoryChartData } from '../../utils/helper';
 import { useTheme } from '../../context/ThemeContext';
 
 const BASE_COLORS = {
@@ -26,25 +27,10 @@ const buildIncomeColors = (count, isDark) => {
 };
 
 const RecentIncomeWithChart = ({ data, totalIncome }) => {
-const { isDark } = useTheme();
+    const { isDark } = useTheme();
 
-const [chartData, setChartData] = useState([]);
-const colors = buildIncomeColors(chartData.length, isDark);
-
-const prepareChartData = () => {
-    const dataArr = data?.map(item => ({
-        name: item?.source,
-        amount: item?.amount,
-    }));
-
-    setChartData(dataArr);
-};
-
-useEffect(() => {
-    prepareChartData();
-
-    return () => {};
-}, [data]);
+    const chartData = useMemo(() => prepareIncomeCategoryChartData(data), [data]);
+    const colors = buildIncomeColors(chartData.length, isDark);
 
   return (
     <div className="card">
@@ -64,4 +50,4 @@ useEffect(() => {
     )
 };
 
-export default RecentIncomeWithChart
+export default RecentIncomeWithChart;
