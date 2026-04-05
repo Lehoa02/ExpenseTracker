@@ -11,6 +11,83 @@ const getUTCMonthKey = (date) => {
     return `${year}-${month}`;
 };
 
+const parseMonthKey = (monthKey) => {
+    const match = /^([0-9]{4})-([0-9]{2})$/.exec(monthKey || "");
+
+    if (!match) {
+        return null;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+
+    if (Number.isNaN(year) || Number.isNaN(month) || month < 1 || month > 12) {
+        return null;
+    }
+
+    return { year, month };
+};
+
+const buildWeeklyBreakdown = (transactions = [], monthStart = new Date()) => {
+    const daysInMonth = new Date(Date.UTC(
+        monthStart.getUTCFullYear(),
+        monthStart.getUTCMonth() + 1,
+        0,
+    )).getUTCDate();
+
+    const weeks = Array.from({ length: 5 }, (_, index) => {
+        const startDay = index * 7 + 1;
+        const endDay = Math.min((index + 1) * 7, daysInMonth);
+        const weekStart = new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            startDay,
+        ));
+        const weekEnd = new Date(Date.UTC(
+            monthStart.getUTCFullYear(),
+            monthStart.getUTCMonth(),
+            endDay,
+        ));
+
+        return {
+            weekKey: `week-${index + 1}`,
+            weekLabel: `Week ${index + 1}`,
+            startDate: weekStart.toISOString(),
+            endDate: weekEnd.toISOString(),
+            rangeLabel: `${startDay}-${endDay}`,
+            income: 0,
+            expense: 0,
+            profit: 0,
+        };
+    });
+
+    transactions.forEach((transaction) => {
+        if (!transaction?.date) {
+            return;
+        }
+
+        const transactionDate = new Date(transaction.date);
+        const dayOfMonth = transactionDate.getUTCDate();
+        const weekIndex = Math.min(Math.floor((dayOfMonth - 1) / 7), weeks.length - 1);
+        const week = weeks[weekIndex];
+
+        if (!week) {
+            return;
+        }
+
+        if (transaction.type === "income") {
+            week.income += transaction.amount;
+        } else {
+            week.expense += transaction.amount;
+        }
+    });
+
+    return weeks.map((week) => ({
+        ...week,
+        profit: week.income - week.expense,
+    }));
+};
+
 const buildMonthlyProfitSeries = (incomeByMonth = [], expenseByMonth = []) => {
     const incomeMap = new Map(incomeByMonth.map((item) => [item._id, item.total]));
     const expenseMap = new Map(expenseByMonth.map((item) => [item._id, item.total]));
@@ -182,6 +259,64 @@ const getFinanceSummary = async (userId) => {
     };
 };
 
+const getMonthlyProfitBreakdown = async (userId, monthKey) => {
+    const parsedMonth = parseMonthKey(monthKey);
+
+    if (!parsedMonth) {
+        const error = new Error("Invalid month key. Expected format YYYY-MM.");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const userObjectId = normalizeUserId(userId);
+    const monthStart = new Date(Date.UTC(parsedMonth.year, parsedMonth.month - 1, 1));
+    const monthEnd = new Date(Date.UTC(parsedMonth.year, parsedMonth.month, 1));
+    const monthLabel = monthStart.toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+    });
+
+    const [incomeTransactions, expenseTransactions] = await Promise.all([
+        Income.find({
+            userId: userObjectId,
+            date: { $gte: monthStart, $lt: monthEnd },
+        }).sort({ date: 1 }),
+        Expense.find({
+            userId: userObjectId,
+            date: { $gte: monthStart, $lt: monthEnd },
+        }).sort({ date: 1 }),
+    ]);
+
+    const formattedTransactions = [
+        ...incomeTransactions.map((transaction) => ({
+            date: transaction.date,
+            amount: transaction.amount,
+            type: "income",
+        })),
+        ...expenseTransactions.map((transaction) => ({
+            date: transaction.date,
+            amount: transaction.amount,
+            type: "expense",
+        })),
+    ].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const totalIncome = incomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    const totalExpense = expenseTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+    return {
+        monthKey,
+        monthLabel,
+        totals: {
+            income: totalIncome,
+            expense: totalExpense,
+            profit: totalIncome - totalExpense,
+        },
+        weeks: buildWeeklyBreakdown(formattedTransactions, monthStart),
+    };
+};
+
 module.exports = {
     getFinanceSummary,
+    getMonthlyProfitBreakdown,
 };

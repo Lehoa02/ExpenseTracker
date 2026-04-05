@@ -30,7 +30,7 @@ const BAR_PALETTE = {
 	},
 };
 
-const ProfitBarChart = ({ data = [], incomeTransactions = [], expenseTransactions = [] }) => {
+const ProfitBarChart = ({ data = [], incomeTransactions = [], expenseTransactions = [], onMonthClick }) => {
 	const { isDark } = useTheme();
 	const palette = isDark ? BAR_PALETTE.dark : BAR_PALETTE.light;
 
@@ -102,12 +102,24 @@ const ProfitBarChart = ({ data = [], incomeTransactions = [], expenseTransaction
 					<YAxis tick={{ fontSize: 12, fill: palette.axis }} tickLine={false} axisLine={false} tickFormatter={(value) => addThousandSeparator(value)} />
 					<Tooltip content={<CustomTooltip />} cursor={{ fill: palette.hoverCursor, radius: 12 }} />
 					<Legend content={() => null} />
-					<Bar dataKey="income" stackId="profit" fill={palette.income} radius={[0, 0, 8, 8]}>
+					<Bar
+						dataKey="income"
+						stackId="profit"
+						fill={palette.income}
+						radius={[0, 0, 8, 8]}
+						onClick={(barData) => onMonthClick?.(barData?.payload)}
+					>
 						{chartData.map((entry, index) => (
 							<Cell key={`income-${entry.bucketKey}-${index}`} fill={palette.income} />
 						))}
 					</Bar>
-					<Bar dataKey="expense" stackId="profit" fill={palette.expense} radius={[8, 8, 0, 0]}>
+					<Bar
+						dataKey="expense"
+						stackId="profit"
+						fill={palette.expense}
+						radius={[8, 8, 0, 0]}
+						onClick={(barData) => onMonthClick?.(barData?.payload)}
+					>
 						{chartData.map((entry, index) => (
 							<Cell key={`expense-${entry.bucketKey}-${index}`} fill={palette.expense} />
 						))}

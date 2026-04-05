@@ -15,6 +15,7 @@ import RecentIncomeWithChart from '../../components/Dashboard/RecentIncomeWithCh
 import RecentIncome from '../../components/Dashboard/RecentIncome';
 import { useTheme } from '../../context/ThemeContext';
 import ProfitSummory from '../../components/Dashboard/ProfitSummory';
+import FirstTimeSetup from '../../components/Dashboard/FirstTimeSetup';
 
 const Home = () => {
   useUserAuth();
@@ -24,6 +25,11 @@ const Home = () => {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const isFirstTimeSetup =
+    Boolean(dashboardData) &&
+    Number(dashboardData?.totalIncome || 0) === 0 &&
+    Number(dashboardData?.totalExpense || 0) === 0 &&
+    (dashboardData?.recentTransactions?.length || 0) === 0;
 
   const fetchDashboardData = async () => {
     if (loading) return;
@@ -78,45 +84,54 @@ const Home = () => {
 
         <div className='grid grid-cols-1 md:grid-cols-1 gap-6 mt-6'>
 
-          <ProfitSummory
-          profitByMonth={dashboardData?.profitByMonth || []}
-          incomeTransactions={dashboardData?.last60daysIncomeTransactions?.transactions || []}
-          expenseTransactions={dashboardData?.last30daysExpenseTransactions?.transactions || []}
-          onSeeMore={() => navigate("/income")}
-          />
+          {isFirstTimeSetup ? (
+            <FirstTimeSetup
+              onIncomeClick={() => navigate('/income')}
+              onExpenseClick={() => navigate('/expense')}
+            />
+          ) : (
+            <ProfitSummory
+              profitByMonth={dashboardData?.profitByMonth || []}
+              incomeTransactions={dashboardData?.last60daysIncomeTransactions?.transactions || []}
+              expenseTransactions={dashboardData?.last30daysExpenseTransactions?.transactions || []}
+              onSeeMore={() => navigate('/income')}
+            />
+          )}
 
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>
-          <RecentTransactions transactions={dashboardData?.recentTransactions} 
-          onSeeMore={() => navigate("/expense")}
-          />
+        {!isFirstTimeSetup && (
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mt-6'>
+            <RecentTransactions transactions={dashboardData?.recentTransactions} 
+            onSeeMore={() => navigate("/expense")}
+            />
 
-          <FinanceOverview
-          totalBalance={dashboardData?.totalBalance || 0}
-          totalIncome={dashboardData?.totalIncome || 0}
-          totalExpense={dashboardData?.totalExpense || 0}
-          /> 
+            <FinanceOverview
+            totalBalance={dashboardData?.totalBalance || 0}
+            totalIncome={dashboardData?.totalIncome || 0}
+            totalExpense={dashboardData?.totalExpense || 0}
+            /> 
 
-          <ExpenseTransactions
-          transactions={dashboardData?.recentTransactions}
-          onSeeMore={() => navigate("/expense")}
-          />
+            <ExpenseTransactions
+            transactions={dashboardData?.recentTransactions}
+            onSeeMore={() => navigate("/expense")}
+            />
 
-          <Last30DaysExpense
-          data={dashboardData?.last30daysExpenseTransactions?.transactions || []}
-          />
+            <Last30DaysExpense
+            data={dashboardData?.last30daysExpenseTransactions?.transactions || []}
+            />
 
-          <RecentIncomeWithChart
-          data={dashboardData?.last60daysIncomeTransactions?.transactions || []}
-          totalIncome={dashboardData?.totalIncome || 0}
-          />
+            <RecentIncomeWithChart
+            data={dashboardData?.last60daysIncomeTransactions?.transactions || []}
+            totalIncome={dashboardData?.totalIncome || 0}
+            />
 
-          <RecentIncome
-          transactions={dashboardData?.recentTransactions}
-          onSeeMore={() => navigate("/income")}
-          />
-        </div>
+            <RecentIncome
+            transactions={dashboardData?.recentTransactions}
+            onSeeMore={() => navigate("/income")}
+            />
+          </div>
+        )}
 
         
 

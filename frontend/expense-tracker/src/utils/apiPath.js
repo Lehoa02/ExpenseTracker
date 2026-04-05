@@ -9,6 +9,7 @@ export const API_PATHS = {
     },
     DASHBOARD: {
         GET_DATA: `/dashboard`,
+        GET_PROFIT_BREAKDOWN: (monthKey) => `/dashboard/profit-breakdown?month=${encodeURIComponent(monthKey)}`,
     },
     AI: {
         CHAT: `/ai/message`,

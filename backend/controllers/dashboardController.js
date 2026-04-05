@@ -1,4 +1,4 @@
-const { getFinanceSummary } = require("../services/financeSummaryService.js");
+const { getFinanceSummary, getMonthlyProfitBreakdown } = require("../services/financeSummaryService.js");
 const { processRecurringTransactions } = require("../services/recurringTransactionService.js");
 
 exports.getDashboardData = async (req, res) => {
@@ -15,6 +15,21 @@ exports.getDashboardData = async (req, res) => {
     } catch (error) {
         console.error("Dashboard API Error:", error);
         res.status(500).json({ message: "Error fetching dashboard data", error: error.message });
+    }
+};
+
+exports.getDashboardProfitBreakdown = async (req, res) => {
+    try {
+        const { month } = req.query;
+        const breakdown = await getMonthlyProfitBreakdown(req.user.id, month);
+
+        res.json(breakdown);
+    } catch (error) {
+        console.error("Dashboard Monthly Breakdown API Error:", error);
+        res.status(error.statusCode || 500).json({
+            message: error.statusCode === 400 ? error.message : "Error fetching monthly profit breakdown",
+            error: error.message,
+        });
     }
 };
 

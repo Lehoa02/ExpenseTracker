@@ -14,6 +14,7 @@ const SignUp = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [error, setError] = useState(null);
 
@@ -44,6 +45,11 @@ const SignUp = () => {
 
     if (!validatePassword(password)) {
       setError('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -115,6 +121,13 @@ const SignUp = () => {
               onChange={({ target }) => setPassword(target.value)}
               placeholder="Min 8 chars, mixed case, number, symbol"
               label="Password"
+              type="password"
+            />
+            <Input 
+              value={confirmPassword}
+              onChange={({ target }) => setConfirmPassword(target.value)}
+              placeholder="Re-enter your password"
+              label="Repeat Password"
               type="password"
             />
             </div>
