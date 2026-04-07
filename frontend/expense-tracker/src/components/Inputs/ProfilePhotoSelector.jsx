@@ -24,7 +24,7 @@ const ProfilePhotoSelector = ({ image, setImage }) => {
     inputRef.current.click();
     }
 
-    return(<div className="flex justify-center mb-6">
+    return(<div className="flex justify-center">
         <input
             type="file"
             accept="image/*"
@@ -33,15 +33,15 @@ const ProfilePhotoSelector = ({ image, setImage }) => {
             className="hidden"
             />
         {!image ? (
-            <div className="w-20 h-20 flex items-center justify-center bg-purple-100 rounded-full relative">
-                <LuUser className="text-4xl text-primary" />
+            <div className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-violet-300 bg-violet-50/90 shadow-sm dark:border-violet-500/30 dark:bg-violet-500/10">
+                <LuUser className="text-2xl text-primary" />
 
                 <button 
-                    className="w-8 h-8 flex items-center justify-center bg-primary text-white rounded-full absolute -bottom-1 -right-1"
+                    className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-purple-500/25 transition-transform group-hover:scale-105"
                     type="button"
                     onClick={onChooseFile}
                 >
-                <LuUpload />
+                <LuUpload size={12} />
                 </button>
             </div>
         ) : (
@@ -49,14 +49,14 @@ const ProfilePhotoSelector = ({ image, setImage }) => {
                 <img
                     src={previewUrl}
                     alt="Profile Photo"
-                    className="w-20 h-20 rounded-full object-cover"
+                    className="h-16 w-16 rounded-full object-cover ring-4 ring-white shadow-md dark:ring-slate-900"
                 />
                 <button
-                    className="w-8 h-8 flex items-center justify-center bg-red-500 text-white rounded-full absolute -bottom-1 -right-1"
+                    className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg shadow-red-500/20 transition-transform hover:scale-105"
                     type="button"
                     onClick={handleRemoveImage}
                 >
-                    <LuTrash size={14} />
+                    <LuTrash size={12} />
                 </button>
             </div>
         )}
