@@ -93,7 +93,7 @@ const Login = () => {
             {isLoading ? 'LOGGING IN...' : 'LOGIN'}
           </button>
 
-          <p className="text-[13px] text-slate-800 mt-3">
+          <p className="text-[13px] text-slate-800 dark:text-slate-300 mt-3">
             Don't have an account?{" "}
             <Link to="/signup" className="font-medium text-primary underline">
               Sign Up
