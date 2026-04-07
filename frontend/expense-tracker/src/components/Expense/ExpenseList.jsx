@@ -86,6 +86,7 @@ const ExpenseList = ({ transactions, onDelete, onEdit, onBulkDeleteRequest, onDo
                         amount={expense.amount}
                         type="expense"
                         isSelected={selectedIds.includes(expense._id)}
+                        isScheduled={expense.isScheduled}
                         onSelect={() => toggleSelected(expense._id)}
                         onDelete={() => onDelete(expense)}
                         onEdit={() => onEdit?.(expense)}

@@ -96,6 +96,7 @@ const IncomeList = ({
                         amount={income.amount}
                         type="income"
                         isSelected={selectedIds.includes(income._id)}
+                        isScheduled={income.isScheduled}
                         onSelect={() => toggleSelected(income._id)}
                         onDelete={() => onDelete(income)}
                         onEdit={() => onEdit?.(income)}

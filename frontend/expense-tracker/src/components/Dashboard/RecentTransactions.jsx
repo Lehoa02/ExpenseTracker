@@ -25,6 +25,7 @@ const RecentTransactions = ({ transactions, onSeeMore }) => {
                     date={moment.tz(item.date, item.timezone || getUserTimeZone()).format("Do MMM, YYYY")}
                     amount={item.amount}
                     type={item.type}
+                    isScheduled={item.isScheduled}
                     hideDeleteBtn
                 />
             ))}

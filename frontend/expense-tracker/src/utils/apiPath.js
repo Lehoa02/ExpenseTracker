@@ -17,6 +17,7 @@ export const API_PATHS = {
     INCOME: {
         ADD_INCOME: `/income/add`,
         GET_ALL_INCOME: `/income/get`,
+        GET_SCHEDULED_INCOME: `/income/scheduled/get`,
         UPDATE_INCOME: (id) => `/income/${id}`,
         DELETE_INCOME: (id) => `/income/${id}`,
         DELETE_INCOME_BY_SOURCE: (source) => `/income/source/${encodeURIComponent(source)}`,
@@ -26,6 +27,7 @@ export const API_PATHS = {
     EXPENSE: {
         ADD_EXPENSE: `/expense/add`,
         GET_ALL_EXPENSE: `/expense/get`,
+        GET_SCHEDULED_EXPENSE: `/expense/scheduled/get`,
         UPDATE_EXPENSE: (id) => `/expense/${id}`,
         DELETE_EXPENSE: (id) => `/expense/${id}`,
         DELETE_EXPENSE_BY_CATEGORY: (category) => `/expense/category/${encodeURIComponent(category)}`,

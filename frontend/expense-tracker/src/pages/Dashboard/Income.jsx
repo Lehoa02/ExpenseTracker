@@ -17,6 +17,7 @@ import IncomeSourceChart from '../../components/Income/IncomeSourceChart';
 const Income = () => {
   useUserAuth();
   const [incomeData, setIncomeData] = useState([]);
+  const [scheduledIncomeData, setScheduledIncomeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDeleteAlert, setOpenDeleteAlert] = useState({
     show: false,
@@ -111,10 +112,16 @@ const Income = () => {
     setLoading(true);
 
     try{
-      const response = await axiosInstance.get(`${API_PATHS.INCOME.GET_ALL_INCOME}`);
+      const [incomeResponse, scheduledResponse] = await Promise.all([
+        axiosInstance.get(`${API_PATHS.INCOME.GET_ALL_INCOME}`),
+        axiosInstance.get(`${API_PATHS.INCOME.GET_SCHEDULED_INCOME}`),
+      ]);
 
-      if(response.data) {
-        setIncomeData(response.data);
+      if(incomeResponse.data) {
+        setIncomeData(incomeResponse.data);
+      }
+      if(scheduledResponse.data) {
+        setScheduledIncomeData(scheduledResponse.data);
       }
     } catch (error) {
       console.log('Error fetching income details:', error);
@@ -412,7 +419,10 @@ const Income = () => {
           </div>
 
           <IncomeList 
-            transactions={filteredIncomeData}
+            transactions={[
+              ...scheduledIncomeData.map(item => ({...item, isScheduled: true})),
+              ...filteredIncomeData
+            ]}
             onDelete={handleDeleteIncomeRequest}
             onEdit={handleEditIncomeRequest}
             onBulkDeleteRequest={handleBulkDeleteIncomeRequest}

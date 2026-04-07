@@ -1,6 +1,7 @@
 const Expense = require("../models/Expense.js");
 const Income = require("../models/Income.js");
 const { Types } = require("mongoose");
+const { isScheduledTransaction } = require("../utils/transactionHelpers.js");
 
 const normalizeUserId = (userId) => new Types.ObjectId(String(userId));
 
@@ -135,6 +136,10 @@ const getFinanceSummary = async (userId) => {
         1,
     ));
 
+    // Set cutoff to today at end of day (23:59:59) to include all of today's transactions
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
     const [
         totalIncome,
         totalExpense,
@@ -146,27 +151,44 @@ const getFinanceSummary = async (userId) => {
         incomeBySource,
         incomeMonthlyTotals,
         expenseMonthlyTotals,
+        scheduledIncomeTransactions,
+        scheduledExpenseTransactions,
     ] = await Promise.all([
         Income.aggregate([
-            { $match: { userId: userObjectId } },
+            {
+                $match: {
+                    userId: userObjectId,
+                    date: { $lte: today },
+                },
+            },
             { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         Expense.aggregate([
-            { $match: { userId: userObjectId } },
+            {
+                $match: {
+                    userId: userObjectId,
+                    date: { $lte: today },
+                },
+            },
             { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         Income.find({
             userId: userObjectId,
-            date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
+            date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), $lte: today },
         }).sort({ date: -1 }),
         Expense.find({
             userId: userObjectId,
-            date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+            date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), $lte: today },
         }).sort({ date: -1 }),
-        Income.find({ userId: userObjectId }).sort({ date: -1 }).limit(5),
-        Expense.find({ userId: userObjectId }).sort({ date: -1 }).limit(5),
+        Income.find({ userId: userObjectId, date: { $lte: today } }).sort({ date: -1 }).limit(5),
+        Expense.find({ userId: userObjectId, date: { $lte: today } }).sort({ date: -1 }).limit(5),
         Expense.aggregate([
-            { $match: { userId: userObjectId } },
+            {
+                $match: {
+                    userId: userObjectId,
+                    date: { $lte: today },
+                },
+            },
             {
                 $group: {
                     _id: { $ifNull: ["$category", "Uncategorized"] },
@@ -177,7 +199,12 @@ const getFinanceSummary = async (userId) => {
             { $limit: 8 },
         ]),
         Income.aggregate([
-            { $match: { userId: userObjectId } },
+            {
+                $match: {
+                    userId: userObjectId,
+                    date: { $lte: today },
+                },
+            },
             {
                 $group: {
                     _id: { $ifNull: ["$source", "Income"] },
@@ -191,7 +218,7 @@ const getFinanceSummary = async (userId) => {
             {
                 $match: {
                     userId: userObjectId,
-                    date: { $gte: rangeStart },
+                    date: { $gte: rangeStart, $lte: today },
                 },
             },
             {
@@ -206,7 +233,7 @@ const getFinanceSummary = async (userId) => {
             {
                 $match: {
                     userId: userObjectId,
-                    date: { $gte: rangeStart },
+                    date: { $gte: rangeStart, $lte: today },
                 },
             },
             {
@@ -217,6 +244,14 @@ const getFinanceSummary = async (userId) => {
             },
             { $sort: { _id: 1 } },
         ]),
+        Income.find({
+            userId: userObjectId,
+            date: { $gt: today },
+        }).sort({ date: 1 }),
+        Expense.find({
+            userId: userObjectId,
+            date: { $gt: today },
+        }).sort({ date: 1 }),
     ]);
 
     const last60daysTotalIncome = last60daysIncomeTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
@@ -227,10 +262,12 @@ const getFinanceSummary = async (userId) => {
         ...recentIncomeTransactions.map((transaction) => ({
             ...transaction.toObject(),
             type: "income",
+            isScheduled: isScheduledTransaction(transaction.date),
         })),
         ...recentExpenseTransactions.map((transaction) => ({
             ...transaction.toObject(),
             type: "expense",
+            isScheduled: isScheduledTransaction(transaction.date),
         })),
     ].sort((a, b) => b.date - a.date);
 
@@ -256,6 +293,16 @@ const getFinanceSummary = async (userId) => {
             source: item._id,
             total: item.total,
         })),
+        scheduledIncome: scheduledIncomeTransactions.map((transaction) => ({
+            ...transaction.toObject(),
+            type: "income",
+            isScheduled: true,
+        })),
+        scheduledExpense: scheduledExpenseTransactions.map((transaction) => ({
+            ...transaction.toObject(),
+            type: "expense",
+            isScheduled: true,
+        })),
     };
 };
 
@@ -277,14 +324,26 @@ const getMonthlyProfitBreakdown = async (userId, monthKey) => {
         timeZone: "UTC",
     });
 
+    // Set cutoff to today at end of day (23:59:59) to include all of today's transactions
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
     const [incomeTransactions, expenseTransactions] = await Promise.all([
         Income.find({
             userId: userObjectId,
-            date: { $gte: monthStart, $lt: monthEnd },
+            $and: [
+                { date: { $gte: monthStart } },
+                { date: { $lt: monthEnd } },
+                { date: { $lte: today } },
+            ],
         }).sort({ date: 1 }),
         Expense.find({
             userId: userObjectId,
-            date: { $gte: monthStart, $lt: monthEnd },
+            $and: [
+                { date: { $gte: monthStart } },
+                { date: { $lt: monthEnd } },
+                { date: { $lte: today } },
+            ],
         }).sort({ date: 1 }),
     ]);
 
@@ -293,11 +352,13 @@ const getMonthlyProfitBreakdown = async (userId, monthKey) => {
             date: transaction.date,
             amount: transaction.amount,
             type: "income",
+            isScheduled: isScheduledTransaction(transaction.date),
         })),
         ...expenseTransactions.map((transaction) => ({
             date: transaction.date,
             amount: transaction.amount,
             type: "expense",
+            isScheduled: isScheduledTransaction(transaction.date),
         })),
     ].sort((a, b) => new Date(a.date) - new Date(b.date));
 

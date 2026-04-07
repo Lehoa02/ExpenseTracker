@@ -18,6 +18,7 @@ const Expense = () => {
   useUserAuth();
 
   const [expenseData, setExpenseData] = useState([]);
+  const [scheduledExpenseData, setScheduledExpenseData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [openDeleteAlert, setOpenDeleteAlert] = useState({
       show: false,
@@ -97,10 +98,16 @@ const Expense = () => {
     setLoading(true);
 
     try{
-      const response = await axiosInstance.get(`${API_PATHS.EXPENSE.GET_ALL_EXPENSE}`);
+      const [expenseResponse, scheduledResponse] = await Promise.all([
+        axiosInstance.get(`${API_PATHS.EXPENSE.GET_ALL_EXPENSE}`),
+        axiosInstance.get(`${API_PATHS.EXPENSE.GET_SCHEDULED_EXPENSE}`),
+      ]);
 
-      if(response.data) {
-        setExpenseData(response.data);
+      if(expenseResponse.data) {
+        setExpenseData(expenseResponse.data);
+      }
+      if(scheduledResponse.data) {
+        setScheduledExpenseData(scheduledResponse.data);
       }
     } catch (error) {
       console.log('Error fetching expense details:', error);
@@ -392,7 +399,10 @@ const Expense = () => {
               />
           </div>
           <ExpenseList 
-            transactions={filteredExpenseData}
+            transactions={[
+              ...scheduledExpenseData.map(item => ({...item, isScheduled: true})),
+              ...filteredExpenseData
+            ]}
             onDelete={handleDeleteExpenseRequest}
             onEdit={handleEditExpenseRequest}
             onBulkDeleteRequest={handleBulkDeleteExpenseRequest}

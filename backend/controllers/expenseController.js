@@ -68,6 +68,21 @@ exports.addExpense = async (req, res) => {
 };
 
 //Get All Expense Categories
+//Get All Scheduled Expenses
+exports.getScheduledExpenses = async (req, res) => {
+    const userId = req.user.id;
+
+    try{
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        
+        const scheduledExpenses = await Expense.find({ userId, date: { $gt: today } }).sort({ date: 1});
+        res.json(scheduledExpenses);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error'});
+    }
+};
+
 exports.getAllExpenses = async (req, res) => {
     const userId = req.user.id;
 
@@ -76,7 +91,10 @@ exports.getAllExpenses = async (req, res) => {
             console.error('Recurring expense backfill failed:', error);
         });
 
-        const expenses = await Expense.find({ userId }).sort({ date: -1});
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        
+        const expenses = await Expense.find({ userId, date: { $lte: today } }).sort({ date: -1});
         res.json(expenses);
     } catch (error) {
         res.status(500).json({ message: 'Server Error'});

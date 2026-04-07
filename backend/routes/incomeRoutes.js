@@ -2,6 +2,7 @@ const express = require('express');
 const {
     addIncome,
     getAllIncome,
+    getScheduledIncome,
     updateIncome,
     deleteIncome,
     deleteIncomeBySource,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.post("/add", protect, addIncome);
 router.get("/get", protect, getAllIncome);
+router.get("/scheduled/get", protect, getScheduledIncome);
 router.put("/:id", protect, updateIncome);
 router.delete("/:id", protect, deleteIncome);
 router.delete("/source/:source", protect, deleteIncomeBySource);

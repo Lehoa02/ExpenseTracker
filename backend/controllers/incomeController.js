@@ -192,6 +192,21 @@ exports.updateIncome = async (req, res) => {
     }
 };
 
+//Get All Scheduled Income
+exports.getScheduledIncome = async (req, res) => {
+    const userId = req.user.id;
+
+    try{
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        
+        const scheduledIncome = await Income.find({ userId, date: { $gt: today } }).sort({ date: 1});
+        res.json(scheduledIncome);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error'});
+    }
+};
+
 //Get All Income Sources
 exports.getAllIncome = async (req, res) => {
     const userId = req.user.id;
@@ -201,7 +216,10 @@ exports.getAllIncome = async (req, res) => {
             console.error('Recurring income backfill failed:', error);
         });
 
-        const income = await Income.find({ userId }).sort({ date: -1});
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        
+        const income = await Income.find({ userId, date: { $lte: today } }).sort({ date: -1});
         res.json(income);
     } catch (error) {
         res.status(500).json({ message: 'Server Error'});

@@ -18,6 +18,7 @@ const TransactionInfoCard = ({
     recurrenceStatus,
     recurrenceFrequency,
     onStopRecurring,
+    isScheduled,
 }) => {
     const { isDark } = useTheme();
     const rowHoverClass = isDark ? 'hover:bg-slate-700/35' : 'hover:bg-gray-100/60';
@@ -47,9 +48,14 @@ const TransactionInfoCard = ({
                 onSelect();
             }
         }}
-        className={`group relative flex items-center gap-4 mt-2 p-3 rounded-lg transition-colors duration-150 ${
+        style={isScheduled ? {
+            backgroundImage: isDark 
+                ? 'repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.08) 0px, rgba(59, 130, 246, 0.08) 2px, transparent 2px, transparent 15px)'
+                : 'repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.12) 0px, rgba(59, 130, 246, 0.12) 2px, transparent 2px, transparent 15px)'
+        } : {}}
+        className={`group relative flex items-center gap-4 mt-2 p-3 rounded-lg transition-colors duration-150 border ${
             onSelect ? 'cursor-pointer' : ''
-        } ${isSelected ? (isDark ? 'bg-[#875cf5]/15 ring-1 ring-[#875cf5]/40' : 'bg-[#875cf5]/10 ring-1 ring-[#875cf5]/30') : rowHoverClass}`}
+        } border-transparent ${isSelected ? (isDark ? 'bg-[#875cf5]/15 ring-1 ring-[#875cf5]/40' : 'bg-[#875cf5]/10 ring-1 ring-[#875cf5]/30') : rowHoverClass}`}
     >
         <div className="w-12 h-12 flex items-center justify-center text-xl text-slate-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700/70 rounded-full">
             {icon ? (
@@ -63,6 +69,11 @@ const TransactionInfoCard = ({
                 <div>
                     <p className="text-sm text-gray-700 font-medium">{title}</p>
                     <p className="text-xs text-gray-400 mt-1">{date}</p>
+                    {isScheduled && (
+                        <span className="mt-2 inline-flex rounded-full bg-[#295E9E]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-[#295E9E]/15 dark:text-blue-300">
+                            Scheduled
+                        </span>
+                    )}
                     {(recurringTemplateId || recurrenceFrequency) && recurrenceStatus !== 'stopped' && recurrenceFrequency && (
                         <span className="mt-2 inline-flex rounded-full bg-[#875cf5]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#875cf5] dark:bg-[#875cf5]/15 dark:text-[#a78bfa]">
                             Recurs {recurrenceFrequency}
