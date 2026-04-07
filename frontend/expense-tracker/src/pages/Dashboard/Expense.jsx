@@ -387,6 +387,7 @@ const Expense = () => {
                 onAddExpense={() => setOpenAddExpenseModal(true)}
                 onPointClick={handleChartPointClick}
                 onGroupByChange={handleExpenseGroupByChange}
+                selectedGroupBy={expenseOverviewGroupBy}
                 expenseFilter={expenseFilter}
                 onClearFilter={clearExpenseFilter}
               />

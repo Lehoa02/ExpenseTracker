@@ -53,7 +53,7 @@ const TransactionInfoCard = ({
                 ? 'repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.08) 0px, rgba(59, 130, 246, 0.08) 2px, transparent 2px, transparent 15px)'
                 : 'repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.12) 0px, rgba(59, 130, 246, 0.12) 2px, transparent 2px, transparent 15px)'
         } : {}}
-        className={`group relative flex items-center gap-4 mt-2 p-3 rounded-lg transition-colors duration-150 border ${
+        className={`group relative flex w-full items-start gap-4 mt-2 p-3 rounded-lg transition-colors duration-150 border ${
             onSelect ? 'cursor-pointer' : ''
         } border-transparent ${isSelected ? (isDark ? 'bg-[#875cf5]/15 ring-1 ring-[#875cf5]/40' : 'bg-[#875cf5]/10 ring-1 ring-[#875cf5]/30') : rowHoverClass}`}
     >
@@ -65,10 +65,10 @@ const TransactionInfoCard = ({
             )}
             </div>   
 
-            <div className="flex-1 flex items-center justify-between">
-                <div>
-                    <p className="text-sm text-gray-700 font-medium">{title}</p>
-                    <p className="text-xs text-gray-400 mt-1">{date}</p>
+            <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                    <p className="truncate text-sm text-gray-700 font-medium">{title}</p>
+                    <p className="truncate text-xs text-gray-400 mt-1">{date}</p>
                     {isScheduled && (
                         <span className="mt-2 inline-flex rounded-full bg-[#295E9E]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-[#295E9E]/15 dark:text-blue-300">
                             Scheduled
@@ -81,7 +81,7 @@ const TransactionInfoCard = ({
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                     
 
                     {recurringTemplateId && recurrenceStatus !== 'stopped' && onStopRecurring && (
@@ -137,8 +137,8 @@ const TransactionInfoCard = ({
                     )}
 
                     <div
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${getAmountStyles()}`}>
-                        <h6 className="text-xs font-medium">
+                    className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 rounded-md ${getAmountStyles()}`}>
+                        <h6 className="whitespace-nowrap text-xs font-medium">
                             {type === "income" ? "+" : "-"} {addThousandSeparator(amount)}
                         </h6>
                         {type === "income" ? <LuTrendingUp/> : <LuTrendingDown/>}

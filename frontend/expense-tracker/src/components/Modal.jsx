@@ -2,10 +2,10 @@ import React from "react";
 
 const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
-    return (<div className="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-[calc(100%-1rem)] max-h-full overflow-x-hidden bg-black/20 bg-opacity-50">
-    <div className="relative p-4 w-full max-w-2xl max-h-full">
+    return (<div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/20 bg-opacity-50 p-3 sm:items-center sm:p-4">
+    <div className="relative my-auto w-full max-w-2xl">
         {/* Modal content */}
-        <div className="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
+        <div className="relative max-h-[calc(100vh-1.5rem)] overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700 sm:max-h-[calc(100vh-2rem)]">
             {/* Modal header */}
             <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600 border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>
@@ -27,7 +27,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
                 </button>
         </div>
             {/* Modal body */}
-            <div className="p-4 md:p-5 space-y-4">
+            <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-4 md:p-5 space-y-4">
                 {children}
             </div>
         </div>

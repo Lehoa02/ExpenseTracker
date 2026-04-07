@@ -405,6 +405,7 @@ const Income = () => {
             onAddIncome={() => setOpenAddIncomeModal(true)}
             onPointClick={handleChartPointClick}
             onGroupByChange={handleIncomeGroupByChange}
+            selectedGroupBy={incomeOverviewGroupBy}
             incomeFilter={incomeFilter}
             onClearFilter={clearIncomeFilter}
             />

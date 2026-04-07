@@ -38,6 +38,7 @@ axiosInstance.interceptors.response.use(
             const serverMessage = error.response.data?.message;
 
             if (error.response.status === 401) {
+                localStorage.removeItem("token");
                 window.location.href = "/login";
             } else if (error.response.status === 500) {
                 console.error("Server Error:", error.response.data);

@@ -19,7 +19,11 @@ const DashboardLayout = ({children, activeMenu}) => {
                 <div className='grow mx-5'>{children}</div>
             </div>
         )}
-        {user && <FinanceAssistant />}
+        {user && (
+            <div className='max-md:hidden'>
+                <FinanceAssistant />
+            </div>
+        )}
     </div>
    
   );

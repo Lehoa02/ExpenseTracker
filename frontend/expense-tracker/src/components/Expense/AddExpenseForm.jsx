@@ -89,32 +89,34 @@ const AddExpenseForm = ({ onAddExpense, onSubmit, recentTransactions = [], initi
                 </div>
 
                 {recentExpenseTemplates.length > 0 ? (
-                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         {recentExpenseTemplates.map((transaction) => (
                             <button
                                 key={transaction._id}
                                 type="button"
                                 onClick={() => handleUseTemplate(transaction)}
-                                className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-[#875cf5]/40 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-950/60 dark:hover:bg-slate-900"
+                                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-colors hover:border-[#875cf5]/40 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-950/60 dark:hover:bg-slate-900"
                             >
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#875cf5]/10 text-sm font-semibold text-[#875cf5] dark:bg-[#875cf5]/15 dark:text-[#a78bfa]">
-                                    {transaction?.icon ? (
-                                        <img src={transaction.icon} alt={transaction.category} className="h-5 w-5" />
-                                    ) : (
-                                        transaction?.category?.[0]?.toUpperCase() || 'E'
-                                    )}
+                                <div className="flex min-w-0 flex-1 items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#875cf5]/10 text-sm font-semibold text-[#875cf5] dark:bg-[#875cf5]/15 dark:text-[#a78bfa]">
+                                        {transaction?.icon ? (
+                                            <img src={transaction.icon} alt={transaction.category} className="h-5 w-5" />
+                                        ) : (
+                                            transaction?.category?.[0]?.toUpperCase() || 'E'
+                                        )}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                        <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
+                                            {transaction.category}
+                                        </div>
+                                        <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
+                                            ${transaction.amount} · {moment.tz(transaction.date, transaction.timezone || getUserTimeZone()).format('Do MMM YYYY')}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="min-w-0 flex-1">
-                                    <div className="truncate text-sm font-medium text-gray-900 dark:text-slate-100">
-                                        {transaction.category}
-                                    </div>
-                                    <div className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">
-                                        ${transaction.amount} · {moment.tz(transaction.date, transaction.timezone || getUserTimeZone()).format('Do MMM YYYY')}
-                                    </div>
-                                </div>
-
-                                <div className="text-xs font-medium text-[#875cf5] dark:text-[#a78bfa]">
+                                <div className="shrink-0 text-xs font-medium text-[#875cf5] dark:text-[#a78bfa]">
                                     Use
                                 </div>
                             </button>
@@ -181,7 +183,7 @@ const AddExpenseForm = ({ onAddExpense, onSubmit, recentTransactions = [], initi
                 )}
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="mt-6 flex justify-end">
                 <button type="button" className="add-btn add-btn-fill" onClick={handleSubmit}>
                     {submitLabel}
                 </button>

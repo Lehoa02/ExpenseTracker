@@ -22,6 +22,7 @@ export const useUserAuth = () => {
             } catch (error) {
                 console.error("Failed to fetch user info:", error);
                 if(isMounted) {
+                    localStorage.removeItem("token");
                 clearUser();
                 navigate('/login');
                 }
